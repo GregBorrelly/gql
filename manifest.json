@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "GraphQL Inspector",
+  "version": "1.0",
+  "description": "Inspect GraphQL requests on websites",
+  "permissions": [
+    "webRequest",
+    "storage",
+    "<all_urls>"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "devtools_page": "devtools.html",
+  "background": {
+    "service_worker": "background.js"
+  }
+} 
