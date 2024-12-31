@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>GraphQL Inspector</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
   <style>
@@ -87,8 +89,22 @@
       background: white;
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      margin-bottom: 16px;
-      overflow: hidden;
+      margin-bottom: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background-color 0.2s;
+    }
+
+    .request-card:hover {
+      background: #f8f9fa;
+    }
+
+    .request-card.selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
     }
 
     .request-header {
@@ -112,7 +128,7 @@
 
     .operation-name {
       font-weight: 500;
-      color: var(--primary);
+      font-size: 14px;
     }
 
     .timestamp {
@@ -121,12 +137,7 @@
     }
 
     .operation-type {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background: #f1f8ff;
-      color: #0366d6;
-      font-weight: 500;
+      display: none;
     }
 
     .operation-type.mutation {
@@ -168,11 +179,61 @@
 
     .query-section {
       font-family: 'JetBrains Mono', monospace;
-      background: var(--bg-dark);
-      color: #e1e4e8;
+      background: #282a36;
+      color: #f8f8f2;
       padding: 16px;
       border-radius: 6px;
       position: relative;
+      line-height: 1.5;
+      overflow: auto;
+    }
+
+    .query-section pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1.5;
+      border-radius: 4px;
+    }
+
+    .query-keyword {
+      color: #ff79c6;
+    }
+
+    .query-operation-name {
+      color: #50fa7b;
+    }
+
+    .query-field {
+      color: #8be9fd;
+    }
+
+    .query-argument-name {
+      color: #ffb86c;
+    }
+
+    .query-argument-value {
+      color: #f1fa8c;
+    }
+
+    .query-variable {
+      color: #bd93f9;
+    }
+
+    .query-brace {
+      color: #ff79c6;
+    }
+
+    .variables-title {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .variables-section {
+      margin-top: 24px;
     }
 
     .copy-btn {
@@ -224,13 +285,24 @@
     }
 
     .json-key {
-      color: var(--primary);
+      color: #ff79c6;
     }
 
-    .json-string { color: #50a14f; }
-    .json-number { color: #986801; }
-    .json-boolean { color: #0184bc; }
-    .json-null { color: #a626a4; }
+    .json-string {
+      color: #50fa7b;
+    }
+
+    .json-number {
+      color: #bd93f9;
+    }
+
+    .json-boolean {
+      color: #8be9fd;
+    }
+
+    .json-null {
+      color: #ff5555;
+    }
 
     .hidden-json {
       display: none;
@@ -334,6 +406,309 @@
     .tab {
       padding: 8px 16px;
       font-weight: 500;
+      position: relative;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    /* Add these new styles for filters and metrics */
+    .filters {
+      display: flex;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-light);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-select {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 13px;
+    }
+
+    .metrics {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--bg-light);
+      border-radius: 6px;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .metric-value {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.success {
+      background: var(--success);
+      color: white;
+    }
+
+    .status-badge.error {
+      background: var(--error);
+      color: white;
+    }
+
+    .status-badge.pending {
+      background: var(--warning);
+      color: black;
+    }
+
+    .actions-menu {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 18px;
+    }
+
+    .action-btn:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--primary);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .request-card[data-status="pending"] {
+      opacity: 0.7;
+    }
+
+    .request-card[data-status="success"] {
+      border-left: 3px solid var(--success);
+    }
+
+    .request-card[data-status="error"] {
+      border-left: 3px solid var(--error);
+    }
+
+    /* Update button styles to better handle emojis */
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+    }
+
+    .copy-btn span {
+      font-size: 14px;
+    }
+
+    .action-btn span {
+      font-size: 16px;
+    }
+
+    .clear-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .clear-btn span {
+      font-size: 14px;
+    }
+
+    /* Query type indicators */
+    .request-card[data-type="query"] .operation-name {
+      color: #2563eb; /* Deeper blue for better contrast */
+    }
+
+    .request-card[data-type="mutation"] .operation-name {
+      color: #f97316; /* Orange for mutations */
+    }
+
+    .operation-name {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    /* Update status badge positioning */
+    .status-badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+
+    /* Remove the old operation type badge */
+    .operation-type {
+      display: none;
+    }
+
+    /* Add these styles for the error tab */
+    .error-tab {
+      color: var(--error) !important;
+      font-weight: 500;
+    }
+
+    .error-tab.active {
+      border-bottom-color: var(--error) !important;
+    }
+
+    .error-section {
+      border: 1px solid var(--error);
+    }
+
+    /* Update tab styles */
+    .tabs {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      padding: 8px 0;
+      cursor: pointer;
+      color: #666;
+      font-size: 14px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      color: var(--primary);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .request-group {
+      margin-bottom: 24px;
+    }
+
+    .group-header {
+      font-size: 13px;
+      font-weight: 500;
+      color: #666;
+      text-transform: capitalize;
+      padding: 0 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .group-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .group-count {
+      background: #e5e7eb;
+      color: #666;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .group-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Update request card margin for groups */
+    .request-card {
+      margin-bottom: 0;
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      padding: 2px 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      transition: transform 0.2s;
+    }
+
+    .star-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .star-btn.starred {
+      color: #f59e0b;
+    }
+
+    /* Add a subtle highlight for starred groups */
+    .request-group:has(.star-btn.starred) .group-header {
+      background: #fffbeb;
+      border-radius: 6px;
+      margin: -4px -8px;
+      padding: 4px 8px;
     }
   </style>
 </head>
@@ -341,13 +716,26 @@
   <div class="app-container">
     <header class="header">
       <div class="header-title">
-        <i class="mdi mdi-graphql"></i>
+        <span style="font-size: 20px;">⚡️</span>
         <span>GraphQL Inspector</span>
       </div>
       <div class="toolbar">
+        <div class="filter-group">
+          <select class="filter-select" id="type-filter">
+            <option value="all">All Types</option>
+            <option value="query">Queries</option>
+            <option value="mutation">Mutations</option>
+          </select>
+          <select class="filter-select" id="status-filter">
+            <option value="all">All Status</option>
+            <option value="success">Success</option>
+            <option value="error">Error</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
         <input type="text" class="search-box" placeholder="Search requests..." id="search-input">
         <button class="clear-btn" id="clear-btn">
-          <i class="mdi mdi-delete"></i>
+          <span>🗑</span>
           Clear
         </button>
       </div>
@@ -356,14 +744,19 @@
       <div class="requests-list" id="requests"></div>
       <div class="details-panel" id="details-panel">
         <div class="empty-state">
-          <i class="mdi mdi-graphql" style="font-size: 48px; color: var(--primary-light);"></i>
+          <span style="font-size: 48px;">⚡️</span>
           <p>Select a request to view details</p>
         </div>
       </div>
     </div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/standalone.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/2.8.8/parser-graphql.js"></script>
+  <button class="theme-toggle" id="theme-toggle">
+    <span id="theme-icon">🌙</span>
+  </button>
+  <script src="utils.js"></script>
+  <script src="storage.js"></script>
+  <script src="themes.js"></script>
+  <script src="prettier.js"></script>
   <script src="panel.js"></script>
 </body>
 </html> 
