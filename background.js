@@ -173,28 +173,26 @@ chrome.webRequest.onCompleted.addListener(
       data.duration = duration;
       requestData.set(details.requestId, data);
 
-      // Only send completion if we have response
-      if (response?.body) {
-        console.log('[Background] Sending completion with response:', {
+      // Always send completion, regardless of response
+      console.log('[Background] Sending completion:', {
+        id: details.requestId,
+        status: response?.status || details.statusCode,
+        hasBody: !!response?.body
+      });
+      
+      connections[data.tabId].postMessage({
+        type: 'request-completed',
+        data: {
           id: details.requestId,
-          status: response.status || details.statusCode,
-          hasBody: true
-        });
-        
-        connections[data.tabId].postMessage({
-          type: 'request-completed',
-          data: {
-            id: details.requestId,
-            status: response.status || details.statusCode,
-            duration: duration,
-            response: response.body
-          }
-        });
-        
-        // Clean up after sending
-        requestData.delete(details.requestId);
-        responseData.delete(details.requestId);
-      }
+          status: response?.status || details.statusCode,
+          duration: duration,
+          response: response?.body || null
+        }
+      });
+      
+      // Clean up after sending
+      requestData.delete(details.requestId);
+      responseData.delete(details.requestId);
     }
   },
   { urls: ["*://*/*"] }
@@ -214,6 +212,7 @@ chrome.webRequest.onErrorOccurred.addListener(
       });
     }
     requestData.delete(details.requestId);
+    responseData.delete(details.requestId);
   },
   { urls: ["*://*/*"] }
 );
@@ -244,4 +243,4 @@ function decodeRequest(details) {
   }
   
   return null;
-} 
+}

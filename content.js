@@ -18,7 +18,7 @@ window.fetch = async function(...args) {
         body: body
       });
       
-      // Send response to background script with status
+      // Send response to background script
       chrome.runtime.sendMessage({
         type: 'graphql-response',
         url: url,
@@ -55,11 +55,17 @@ window.XMLHttpRequest.prototype.send = function() {
     xhr.onload = function() {
       try {
         const body = JSON.parse(xhr.responseText);
+        console.log('[Content] XHR Response:', {
+          url: xhr._url,
+          status: xhr.status,
+          body: body
+        });
         
         // Send response to background script
         chrome.runtime.sendMessage({
           type: 'graphql-response',
           url: xhr._url,
+          status: xhr.status,
           body: body
         }, response => {
           if (chrome.runtime.lastError) {
@@ -69,7 +75,7 @@ window.XMLHttpRequest.prototype.send = function() {
           }
         });
       } catch (e) {
-        console.error('Error capturing XHR response:', e);
+        console.error('[Content] Error capturing XHR response:', e);
       }
       
       if (originalOnLoad) {
@@ -79,4 +85,4 @@ window.XMLHttpRequest.prototype.send = function() {
   }
   
   return originalSend.apply(this, arguments);
-}; 
+};
