@@ -9,7 +9,7 @@
     :root {
       --primary: #E535AB;
       --primary-light: #f198d4;
-      --bg-dark: #0b0c0f;
+      --bg-dark: #2A2139;
       --bg-light: #ffffff;
       --text-primary: #172b4d;
       --border-color: #e1e4e8;
@@ -31,7 +31,7 @@
     .header {
       background: var(--bg-dark);
       color: white;
-      padding: 12px 20px;
+      padding: 8px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -40,17 +40,26 @@
     .header-title {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 16px;
       font-weight: 500;
     }
 
-    .header-title i {
-      color: var(--primary);
+    .header-title svg {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+    }
+
+    .header-title span {
+      font-size: 18px;
+      color: white;
+      font-weight: 600;
     }
 
     .toolbar {
       display: flex;
-      gap: 12px;
+      gap: 8px;
+      align-items: center;
     }
 
     .search-box {
@@ -67,17 +76,26 @@
       color: rgba(255, 255, 255, 0.6);
     }
 
-    .clear-btn {
-      background: var(--primary);
-      color: white;
+    .toolbar-btn {
+      background: none;
       border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
+      color: rgba(255, 255, 255, 0.8);
       cursor: pointer;
-      font-size: 14px;
+      padding: 8px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .toolbar-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .toolbar-btn i {
+      font-size: 20px;
     }
 
     .requests-list {
@@ -768,27 +786,75 @@
   <div class="app-container">
     <header class="header">
       <div class="header-title">
-        <span style="font-size: 20px;">⚡️</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+          <!-- Dark background -->
+          <rect width="200" height="200" fill="#2A2139"/>
+          
+          <!-- GraphQL symbol - completely flat -->
+          <g transform="translate(40, 40) scale(0.8)">
+            <!-- Straight connection lines -->
+            <path d="
+              M75 20 L125 45
+              M125 45 L125 95
+              M125 95 L75 120
+              M75 120 L25 95
+              M25 95 L25 45
+              M25 45 L75 20
+              
+              M25 45 L125 95
+              M125 45 L25 95
+              M75 20 L75 120
+            " stroke="white" stroke-width="4" fill="none"/>
+            
+            <!-- Nodes - perfectly circular -->
+            <circle cx="75" cy="20" r="10" fill="white"/>
+            <circle cx="125" cy="45" r="10" fill="white"/>
+            <circle cx="125" cy="95" r="10" fill="white"/>
+            <circle cx="75" cy="120" r="10" fill="white"/>
+            <circle cx="25" cy="95" r="10" fill="white"/>
+            <circle cx="25" cy="45" r="10" fill="white"/>
+            
+            <!-- Center node -->
+            <circle cx="75" cy="70" r="12" fill="#FF69B4"/>
+          </g>
+          
+          <!-- Magnifying glass -->
+          <g transform="translate(115, 115) rotate(-20)">
+            <!-- Glass -->
+            <circle cx="0" cy="0" r="35" 
+                    fill="none" 
+                    stroke="white" 
+                    stroke-width="8"/>
+            
+            <!-- Handle -->
+            <rect x="25" y="-4" width="45" height="8" 
+                  fill="white" 
+                  transform="rotate(45)"
+                  rx="4"/>
+            
+            <!-- Scanning effect -->
+            <circle cx="0" cy="0" r="28" 
+                    fill="none" 
+                    stroke="#FF69B4" 
+                    stroke-width="2"
+                    stroke-dasharray="4,4"/>
+            
+            <!-- Reflection -->
+            <path d="M-20 -15 Q-10 -25 0 -20" 
+                  stroke="white" 
+                  stroke-width="3" 
+                  fill="none"/>
+          </g>
+        </svg>
         <span>GraphQL Inspector</span>
       </div>
       <div class="toolbar">
-        <div class="filter-group">
-          <select class="filter-select" id="type-filter">
-            <option value="all">All Types</option>
-            <option value="query">Queries</option>
-            <option value="mutation">Mutations</option>
-          </select>
-          <select class="filter-select" id="status-filter">
-            <option value="all">All Status</option>
-            <option value="success">Success</option>
-            <option value="error">Error</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
         <input type="text" class="search-box" placeholder="Search requests..." id="search-input">
-        <button class="clear-btn" id="clear-btn">
-          <span>🗑</span>
-          Clear
+        <button class="toolbar-btn" id="clear-btn" title="Clear all requests">
+          <i class="mdi mdi-broom"></i>
+        </button>
+        <button class="toolbar-btn" id="theme-toggle" title="Toggle theme">
+          <i class="mdi mdi-weather-night"></i>
         </button>
       </div>
     </header>
@@ -802,9 +868,6 @@
       </div>
     </div>
   </div>
-  <button class="theme-toggle" id="theme-toggle">
-    <span id="theme-icon">🌙</span>
-  </button>
   <script src="utils.js"></script>
   <script src="storage.js"></script>
   <script src="themes.js"></script>
