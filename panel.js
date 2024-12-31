@@ -247,11 +247,13 @@ function showDetails(request) {
     hasResponse: request.response !== null && request.response !== undefined,
     responseType: typeof request.response,
     response: request.response,
+    query: request.query,
+    requestBody: request.requestBody,
     fullRequest: request
   });
 
   const detailsPanel = document.getElementById('details-panel');
-  const query = request.body?.query || '';
+  const query = request.query || request.requestBody?.query || '';
   const formattedQuery = formatGraphQLQuery(query);
   const highlightedQuery = highlightGraphQLSyntax(formattedQuery);
   const operationType = getOperationType(query);
@@ -264,7 +266,12 @@ function showDetails(request) {
   document.querySelector(`[data-index="${requests.indexOf(request)}"]`).classList.add('selected');
 
   // Add logging to debug response data
-  console.log('Request data:', request);
+  console.log('[Panel] Request data for details:', {
+    operationName,
+    query,
+    formattedQuery,
+    requestBody: request.requestBody
+  });
   
   // Count GraphQL errors if they exist
   const graphqlErrors = request.response?.errors || [];
@@ -322,26 +329,26 @@ function showDetails(request) {
             </button>
             <pre>${highlightedQuery}</pre>
           </div>
-          ${request.body.variables ? `
+          ${request.requestBody?.variables ? `
             <div class="variables-section">
               <div class="variables-title">Variables</div>
               <div class="query-section">
-                <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.body.variables, null, 2)}')">
+                <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.requestBody.variables, null, 2)}')">
                   <span>📋</span>
                   Copy
                 </button>
-                <pre>${formatJSON(request.body.variables)}</pre>
+                <pre>${formatJSON(request.requestBody.variables)}</pre>
               </div>
             </div>
           ` : ''}
         </div>
         <div class="tab-panel" id="detail-payload" style="display: none;">
           <div class="query-section">
-            <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.body, null, 2)}')">
+            <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.requestBody || {}, null, 2)}')">
               <span>📋</span>
               Copy
             </button>
-            <pre>${formatJSON(request.body)}</pre>
+            <pre>${formatJSON(request.requestBody || {})}</pre>
           </div>
         </div>
         ${hasResponse ? `

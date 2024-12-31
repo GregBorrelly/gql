@@ -31,12 +31,21 @@ window.fetch = async function(...args) {
       const body = JSON.parse(text);
       console.log('[Injected] Parsed response body');
 
-      // Extract operation name from request body
+      // Extract operation name and query from request body
       let operationName = 'Anonymous Operation';
+      let query = '';
+      let requestBody = null;
       if (options.body) {
         try {
-          const requestBody = JSON.parse(options.body);
+          requestBody = JSON.parse(options.body);
           operationName = extractOperationName(requestBody.query);
+          query = requestBody.query || '';
+          console.log('[Injected] Extracted from fetch request:', {
+            operationName,
+            query: query.slice(0, 100) + '...',
+            hasQuery: !!query,
+            requestBody
+          });
         } catch (e) {
           console.error('[Injected] Failed to parse request body:', e);
         }
@@ -48,7 +57,9 @@ window.fetch = async function(...args) {
           url: url instanceof Request ? url.url : url,
           status: response.status,
           body,
-          operationName
+          operationName,
+          query,
+          requestBody
         }
       }));
       
@@ -76,12 +87,15 @@ XHR.send = function(data) {
   if (this._url && this._url.includes('graphql')) {
     console.log('[Injected] GraphQL XHR request detected');
     
-    // Extract operation name from request body
+    // Extract operation name and query from request body
     let operationName = 'Anonymous Operation';
+    let query = '';
+    let requestBody = null;
     if (data) {
       try {
-        const requestBody = JSON.parse(data);
+        requestBody = JSON.parse(data);
         operationName = extractOperationName(requestBody.query);
+        query = requestBody.query || '';
       } catch (e) {
         console.error('[Injected] Failed to parse XHR request body:', e);
       }
@@ -103,7 +117,9 @@ XHR.send = function(data) {
             url: this._url,
             status: this.status,
             body,
-            operationName
+            operationName,
+            query,
+            requestBody
           }
         }));
       } catch (e) {

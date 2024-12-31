@@ -42,7 +42,9 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
     timestamp: new Date().toISOString(),
     status: message.status >= 200 && message.status < 300 ? 'success' : 'error',
     response: message.body,
-    operationName: message.operationName || 'Anonymous Operation'
+    operationName: message.operationName || 'Anonymous Operation',
+    query: message.query || '',
+    requestBody: message.requestBody || null
   };
 
   // Store request
