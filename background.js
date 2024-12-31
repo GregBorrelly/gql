@@ -29,6 +29,7 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
   console.log('[Background] Received response from content:', {
     url: message.url,
     status: message.status,
+    operationName: message.operationName,
     bodyPreview: message.body ? JSON.stringify(message.body).slice(0, 100) : null
   });
 
@@ -40,7 +41,8 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
     body: message.body,
     timestamp: new Date().toISOString(),
     status: message.status >= 200 && message.status < 300 ? 'success' : 'error',
-    response: message.body
+    response: message.body,
+    operationName: message.operationName || 'Anonymous Operation'
   };
 
   // Store request

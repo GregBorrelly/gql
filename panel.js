@@ -156,8 +156,7 @@ function updateDisplay() {
   // Group the requests
   const groups = {};
   filteredRequests.forEach(request => {
-    const query = request.body?.query || '';
-    const operationName = getOperationName(query);
+    const operationName = request.operationName || 'Anonymous Operation';
     const group = getQueryGroup(operationName);
     
     if (!groups[group]) {
@@ -192,7 +191,7 @@ function updateDisplay() {
           ${groupRequests.map((request, index) => {
             const query = request.body?.query || '';
             const operationType = getOperationType(query);
-            const operationName = getOperationName(query);
+            const operationName = request.operationName || 'Anonymous Operation';
             const statusBadge = getStatusBadge(request.status);
 
             return `
@@ -256,7 +255,7 @@ function showDetails(request) {
   const formattedQuery = formatGraphQLQuery(query);
   const highlightedQuery = highlightGraphQLSyntax(formattedQuery);
   const operationType = getOperationType(query);
-  const operationName = getOperationName(query);
+  const operationName = request.operationName || 'Anonymous Operation';
   const queryDepth = utils.calculateQueryDepth(query);
 
   document.querySelectorAll('.request-card').forEach(card => {

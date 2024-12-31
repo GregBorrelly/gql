@@ -14,11 +14,12 @@ function injectInterceptor() {
 
 // Listen for response events from injected script
 window.addEventListener('__graphql_response', function(event) {
-  const { url, status, body } = event.detail;
+  const { url, status, body, operationName } = event.detail;
   
   console.log('[Content] Received GraphQL response event:', {
     url,
     status,
+    operationName,
     bodyPreview: JSON.stringify(body).slice(0, 100)
   });
   
@@ -27,7 +28,8 @@ window.addEventListener('__graphql_response', function(event) {
     type: 'graphql-response',
     url,
     status,
-    body
+    body,
+    operationName
   }, response => {
     console.log('[Content] Background script response:', response);
   });

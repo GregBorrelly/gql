@@ -1,5 +1,12 @@
 console.log('[Injected] Script starting');
 
+// Helper function to extract operation name
+function extractOperationName(query) {
+  if (!query) return 'Anonymous Operation';
+  const match = query.match(/(?:query|mutation|subscription)\s+(\w+)/);
+  return match ? match[1] : 'Anonymous Operation';
+}
+
 // Intercept fetch
 const originalFetch = window.fetch;
 window.fetch = async function(...args) {
@@ -23,13 +30,25 @@ window.fetch = async function(...args) {
       
       const body = JSON.parse(text);
       console.log('[Injected] Parsed response body');
+
+      // Extract operation name from request body
+      let operationName = 'Anonymous Operation';
+      if (options.body) {
+        try {
+          const requestBody = JSON.parse(options.body);
+          operationName = extractOperationName(requestBody.query);
+        } catch (e) {
+          console.error('[Injected] Failed to parse request body:', e);
+        }
+      }
       
       // Dispatch event with response data
       window.dispatchEvent(new CustomEvent('__graphql_response', {
         detail: {
           url: url instanceof Request ? url.url : url,
           status: response.status,
-          body
+          body,
+          operationName
         }
       }));
       
@@ -53,9 +72,21 @@ XHR.open = function(method, url) {
   return originalOpen.apply(this, arguments);
 };
 
-XHR.send = function() {
+XHR.send = function(data) {
   if (this._url && this._url.includes('graphql')) {
     console.log('[Injected] GraphQL XHR request detected');
+    
+    // Extract operation name from request body
+    let operationName = 'Anonymous Operation';
+    if (data) {
+      try {
+        const requestBody = JSON.parse(data);
+        operationName = extractOperationName(requestBody.query);
+      } catch (e) {
+        console.error('[Injected] Failed to parse XHR request body:', e);
+      }
+    }
+    
     this.addEventListener('load', function() {
       console.log('[Injected] XHR response received:', {
         status: this.status,
@@ -71,7 +102,8 @@ XHR.send = function() {
           detail: {
             url: this._url,
             status: this.status,
-            body
+            body,
+            operationName
           }
         }));
       } catch (e) {
