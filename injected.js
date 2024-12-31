@@ -3,8 +3,37 @@ console.log('[Injected] Script starting');
 // Helper function to extract operation name
 function extractOperationName(query) {
   if (!query) return 'Anonymous Operation';
-  const match = query.match(/(?:query|mutation|subscription)\s+(\w+)/);
-  return match ? match[1] : 'Anonymous Operation';
+  
+  // Log the input for debugging
+  console.log('[Injected] extractOperationName input:', {
+    type: typeof query,
+    value: query,
+    isArray: Array.isArray(query)
+  });
+  
+  // Handle array input
+  if (Array.isArray(query)) {
+    // Try to get the first operation
+    if (query.length > 0) {
+      const firstOp = query[0];
+      if (firstOp.operationName) return firstOp.operationName;
+      if (firstOp.query) return extractOperationName(firstOp.query);
+    }
+    return 'Anonymous Operation';
+  }
+  
+  // Try to get operationName from the request body first
+  if (typeof query === 'object' && query.operationName) {
+    return query.operationName;
+  }
+  
+  // Fall back to parsing the query string
+  if (typeof query === 'string') {
+    const match = query.match(/(?:query|mutation|subscription)\s+(\w+)/);
+    return match ? match[1] : 'Anonymous Operation';
+  }
+  
+  return 'Anonymous Operation';
 }
 
 // Intercept fetch
@@ -38,8 +67,22 @@ window.fetch = async function(...args) {
       if (options.body) {
         try {
           requestBody = JSON.parse(options.body);
-          operationName = extractOperationName(requestBody.query);
-          query = requestBody.query || '';
+          console.log('[Injected] Request body structure:', {
+            type: typeof requestBody,
+            isArray: Array.isArray(requestBody),
+            keys: typeof requestBody === 'object' ? Object.keys(requestBody) : null,
+            raw: requestBody
+          });
+          
+          // Try to get operationName directly from request
+          if (Array.isArray(requestBody)) {
+            operationName = extractOperationName(requestBody);
+            query = requestBody[0]?.query || '';
+          } else {
+            operationName = requestBody.operationName || extractOperationName(requestBody.query);
+            query = requestBody.query || '';
+          }
+          
           console.log('[Injected] Extracted from fetch request:', {
             operationName,
             query: query.slice(0, 100) + '...',
@@ -94,8 +137,28 @@ XHR.send = function(data) {
     if (data) {
       try {
         requestBody = JSON.parse(data);
-        operationName = extractOperationName(requestBody.query);
-        query = requestBody.query || '';
+        console.log('[Injected] XHR request body structure:', {
+          type: typeof requestBody,
+          isArray: Array.isArray(requestBody),
+          keys: typeof requestBody === 'object' ? Object.keys(requestBody) : null,
+          raw: requestBody
+        });
+        
+        // Try to get operationName directly from request
+        if (Array.isArray(requestBody)) {
+          operationName = extractOperationName(requestBody);
+          query = requestBody[0]?.query || '';
+        } else {
+          operationName = requestBody.operationName || extractOperationName(requestBody.query);
+          query = requestBody.query || '';
+        }
+        
+        console.log('[Injected] Extracted from XHR request:', {
+          operationName,
+          query: query.slice(0, 100) + '...',
+          hasQuery: !!query,
+          requestBody
+        });
       } catch (e) {
         console.error('[Injected] Failed to parse XHR request body:', e);
       }

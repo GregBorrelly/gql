@@ -491,20 +491,39 @@ function formatJSON(obj) {
 
 function highlightGraphQLSyntax(query) {
   return query
-    // Highlight keywords
-    .replace(/(query|mutation|subscription|fragment|on|{|}|\(|\))/g, '<span class="query-brace">$1</span>')
-    // Highlight operation names
-    .replace(/(?:query|mutation|subscription)\s+(\w+)/g, match => {
-      return match.replace(/(\w+)$/, '<span class="query-operation-name">$1</span>');
+    // Comments
+    .replace(/#[^\n]*/g, '<span class="graphql-comment">$&</span>')
+    // Keywords
+    .replace(/\b(query|mutation|subscription|fragment|on|type|input|enum|interface|union|scalar|directive|extend|schema)\b/g, '<span class="graphql-keyword">$1</span>')
+    // Operation names
+    .replace(/(?:query|mutation|subscription)\s+(\w+)/g, (match, name) => {
+      return match.replace(name, `<span class="graphql-operation-name">${name}</span>`);
     })
-    // Highlight field names
-    .replace(/(\w+)(?=\s*{|\s*\(|\s*:|\s*@)/g, '<span class="query-field">$1</span>')
-    // Highlight argument names
-    .replace(/(\w+):\s/g, '<span class="query-argument-name">$1:</span> ')
-    // Highlight variables
-    .replace(/(\$\w+)/g, '<span class="query-variable">$1</span>')
-    // Highlight string values
-    .replace(/"([^"]*)"/, '<span class="query-argument-value">"$1"</span>');
+    // Field names (including aliases)
+    .replace(/(\w+\s*:)?\s*(\w+)(?=\s*[\{\(\@\:\)]|\s*$)/g, (match, alias, field) => {
+      if (alias) {
+        return `<span class="graphql-field">${alias.trim()}</span> <span class="graphql-field">${field}</span>`;
+      }
+      return `<span class="graphql-field">${field}</span>`;
+    })
+    // Arguments
+    .replace(/(\w+):\s*([^,\)\n\}]+)/g, (match, name, value) => {
+      return `<span class="graphql-argument-name">${name}</span>: <span class="graphql-argument-value">${value}</span>`;
+    })
+    // Variables
+    .replace(/(\$\w+)/g, '<span class="graphql-variable">$1</span>')
+    // Directives
+    .replace(/(@\w+)/g, '<span class="graphql-directive">$1</span>')
+    // Types
+    .replace(/:\s*(\[?\w+!?\]?!?)/g, (match, type) => {
+      return `: <span class="graphql-type">${type}</span>`;
+    })
+    // Braces and parentheses
+    .replace(/([\{\}\(\)])/g, '<span class="graphql-brace">$1</span>')
+    // Enum values (uppercase words)
+    .replace(/\b([A-Z][A-Z0-9_]+)\b/g, '<span class="graphql-enum">$1</span>')
+    // Scalar values
+    .replace(/\b(true|false|null|\d+(\.\d+)?)\b/g, '<span class="graphql-scalar">$1</span>');
 }
 
 // Add this function to help with grouping
