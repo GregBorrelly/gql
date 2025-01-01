@@ -1,7 +1,85 @@
 console.log('[Background] Service worker started');
 
+// Efficient request store with LRU-like behavior
+class RequestStore {
+  constructor(maxSize = 1000) {
+    this.maxSize = maxSize;
+    this.store = new Map();
+    this.queue = [];
+  }
+
+  set(id, request) {
+    if (this.queue.length >= this.maxSize) {
+      const oldestId = this.queue.shift();
+      this.store.delete(oldestId);
+    }
+    
+    this.store.set(id, request);
+    this.queue.push(id);
+  }
+
+  get(id) {
+    return this.store.get(id);
+  }
+
+  delete(id) {
+    this.store.delete(id);
+    const index = this.queue.indexOf(id);
+    if (index > -1) this.queue.splice(index, 1);
+  }
+
+  clear() {
+    this.store.clear();
+    this.queue = [];
+  }
+}
+
 let connections = {};
-let requests = new Map();
+const requests = new RequestStore();
+const messageQueue = new Map(); // Tab ID -> Message array
+let messageTimeout = null;
+const MESSAGE_BATCH_DELAY = 100; // 100ms batching window
+
+function sendBatchedMessages(tabId) {
+  const messages = messageQueue.get(tabId) || [];
+  if (!messages.length) return;
+
+  const port = connections[tabId];
+  if (!port) {
+    messageQueue.delete(tabId);
+    return;
+  }
+
+  // Group similar messages
+  const groupedMessages = messages.reduce((acc, msg) => {
+    if (!acc[msg.type]) acc[msg.type] = [];
+    acc[msg.type].push(msg.data);
+    return acc;
+  }, {});
+
+  // Send as batch
+  Object.entries(groupedMessages).forEach(([type, dataArray]) => {
+    port.postMessage({
+      type: `${type}_batch`,
+      data: dataArray
+    });
+  });
+
+  messageQueue.delete(tabId);
+}
+
+function queueMessage(tabId, message) {
+  if (!messageQueue.has(tabId)) {
+    messageQueue.set(tabId, []);
+  }
+  messageQueue.get(tabId).push(message);
+
+  if (messageTimeout) clearTimeout(messageTimeout);
+  messageTimeout = setTimeout(() => {
+    const tabs = Array.from(messageQueue.keys());
+    tabs.forEach(sendBatchedMessages);
+  }, MESSAGE_BATCH_DELAY);
+}
 
 chrome.runtime.onConnect.addListener(function (port) {
   if (port.name !== "devtools-page") return;
@@ -24,7 +102,7 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
   if (message.type !== 'graphql-response') return;
 
   const tabId = sender.tab.id;
-  const requestId = Math.random().toString(36).substring(7); // Generate unique ID
+  const requestId = Math.random().toString(36).substring(7);
 
   console.log('[Background] Received response from content:', {
     url: message.url,
@@ -33,7 +111,6 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
     bodyPreview: message.body ? JSON.stringify(message.body).slice(0, 100) : null
   });
 
-  // Create request object
   const request = {
     id: requestId,
     url: message.url,
@@ -50,23 +127,18 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
   // Store request
   requests.set(requestId, request);
 
-  // Notify DevTools if connected
+  // Queue messages for batching
   if (tabId in connections) {
-    // Send initial request
-    connections[tabId].postMessage({
+    queueMessage(tabId, {
       type: 'graphql-request',
       data: request
     });
-
-    // Send completion immediately after
-    connections[tabId].postMessage({
+    
+    queueMessage(tabId, {
       type: 'request-completed',
       data: request
     });
   }
-
-  // Clean up request after delay
-  setTimeout(() => requests.delete(requestId), 1000 * 60 * 5); // Keep for 5 minutes
   
-  return true; // Keep message channel open for async response
+  return true;
 });

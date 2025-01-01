@@ -5,6 +5,7 @@ let typeFilter = 'all';
 let statusFilter = 'all';
 let currentTheme = 'light';
 let starredGroups = new Set();
+let pendingDisplayUpdate = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -21,42 +22,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load saved history
     const history = await storage.getHistory();
     requests = Array.isArray(history) ? history : [];
-    updateDisplay();
+    requestDisplayUpdate();
   } catch (e) {
     console.error('Initialization error:', e);
   }
 });
 
 function setupEventListeners() {
-  // Search and filters
+  // Search and filters with debouncing
+  const debouncedUpdate = utils.debounce(requestDisplayUpdate, 150);
+  
   document.getElementById('search-input').addEventListener('input', (e) => {
     searchTerm = e.target.value.toLowerCase();
-    updateDisplay();
+    debouncedUpdate();
   });
 
   document.getElementById('type-filter').addEventListener('change', (e) => {
     typeFilter = e.target.value;
-    updateDisplay();
+    debouncedUpdate();
   });
 
   document.getElementById('status-filter').addEventListener('change', (e) => {
     statusFilter = e.target.value;
-    updateDisplay();
+    debouncedUpdate();
   });
 
   // Clear button
   document.getElementById('clear-btn').addEventListener('click', async () => {
     requests = [];
     await storage.clearHistory();
-    updateDisplay();
+    requestDisplayUpdate();
   });
 
-  // Theme toggle
+  // Theme toggle with debounced settings save
+  const debouncedSaveSettings = utils.debounce(async (settings) => {
+    await storage.saveSettings(settings);
+  }, 1000);
+
   document.getElementById('theme-toggle').addEventListener('click', async () => {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     themes.applyTheme(currentTheme);
-    await storage.saveSettings({ ...await storage.getSettings(), theme: currentTheme });
     document.getElementById('theme-icon').textContent = currentTheme === 'light' ? '🌙' : '☀️';
+    
+    const settings = await storage.getSettings();
+    debouncedSaveSettings({ ...settings, theme: currentTheme });
   });
 }
 
@@ -65,84 +74,71 @@ const backgroundPageConnection = chrome.runtime.connect({
   name: "devtools-page"
 });
 
-backgroundPageConnection.onMessage.addListener(async function (message) {
-  console.log('[Panel] Message received:', {
-    type: message.type,
-    data: message.data
-  });
-  
-  if (message.type === 'graphql-request') {
-    console.log('[Panel] New request:', message.data);
-    const request = {
-      ...message.data,
-      status: 'pending',
-      duration: null,
-      response: null
-    };
-    console.log('[Panel] Created request object:', request);
-    requests.unshift(request);
-    await storage.saveRequest(request);
-    updateDisplay();
-  } else if (message.type === 'request-completed') {
-    console.log('[Panel] Request completed:', {
-      id: message.data.id,
-      status: message.data.status,
-      hasResponse: !!message.data.response
-    });
-    
-    const index = requests.findIndex(r => r.id === message.data.id);
-    if (index !== -1) {
-      const updatedRequest = {
-        ...requests[index],
-        status: message.data.status >= 200 && message.data.status < 300 ? 'success' : 'error',
-        duration: message.data.duration,
-        response: message.data.response
-      };
-      
-      console.log('[Panel] Updating request:', {
-        id: updatedRequest.id,
-        status: updatedRequest.status,
-        hasResponse: !!updatedRequest.response
-      });
-      
-      requests[index] = updatedRequest;
-      await storage.saveRequest(updatedRequest);
-      
-      // Force re-render if this request is selected
-      const selectedRequest = document.querySelector('.request-card.selected');
-      if (selectedRequest && selectedRequest.dataset.index === String(index)) {
-        showDetails(updatedRequest);
-      }
-      
-      updateDisplay();
+// Send init message with tab ID
+backgroundPageConnection.postMessage({
+  type: 'init',
+  tabId: chrome.devtools.inspectedWindow.tabId
+});
+
+backgroundPageConnection.onMessage.addListener(async (message) => {
+  // Handle batched messages
+  if (message.type.endsWith('_batch')) {
+    const baseType = message.type.replace('_batch', '');
+    const batchData = message.data;
+
+    switch (baseType) {
+      case 'graphql-request':
+        requests.unshift(...batchData);
+        requestDisplayUpdate();
+        break;
+        
+      case 'request-completed':
+        let updated = false;
+        batchData.forEach(data => {
+          const index = requests.findIndex(r => r.id === data.id);
+          if (index !== -1) {
+            requests[index] = {
+              ...requests[index],
+              status: data.status,
+              duration: data.duration,
+              response: data.response
+            };
+            updated = true;
+          }
+        });
+        if (updated) requestDisplayUpdate();
+        break;
     }
-  } else if (message.type === 'request-error') {
+    return;
+  }
+
+  // Handle individual messages (legacy support)
+  if (message.type === 'graphql-request') {
+    requests.unshift(message.data);
+    requestDisplayUpdate();
+  } else if (message.type === 'request-completed') {
     const index = requests.findIndex(r => r.id === message.data.id);
     if (index !== -1) {
       requests[index] = {
         ...requests[index],
-        status: 'error',
-        error: message.data.error
+        status: message.data.status,
+        duration: message.data.duration,
+        response: message.data.response
       };
-      await storage.saveRequest(requests[index]);
-      updateDisplay();
+      requestDisplayUpdate();
     }
   }
 });
 
-backgroundPageConnection.onDisconnect.addListener(() => {
-  console.log('[Panel] Disconnected from background page');
-});
-
-// Add error handling for message sending
-backgroundPageConnection.postMessage({
-  type: 'init',
-  tabId: chrome.devtools.inspectedWindow.tabId
-}, response => {
-  if (chrome.runtime.lastError) {
-    console.error('[Panel] Error sending init message:', chrome.runtime.lastError);
-  }
-});
+// Efficient display updates
+function requestDisplayUpdate() {
+  if (pendingDisplayUpdate) return;
+  pendingDisplayUpdate = true;
+  requestAnimationFrame(() => {
+    updateDisplay();
+    pendingDisplayUpdate = false;
+  });
+}
 
 function updateDisplay() {
   const container = document.getElementById('requests');
@@ -154,16 +150,13 @@ function updateDisplay() {
   });
 
   // Group the requests
-  const groups = {};
-  filteredRequests.forEach(request => {
+  const groups = filteredRequests.reduce((acc, request) => {
     const operationName = request.operationName || 'Anonymous Operation';
     const group = getQueryGroup(operationName);
-    
-    if (!groups[group]) {
-      groups[group] = [];
-    }
-    groups[group].push(request);
-  });
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(request);
+    return acc;
+  }, {});
 
   // Sort groups to put starred ones first
   const sortedGroups = Object.entries(groups).sort(([groupA], [groupB]) => {
@@ -174,43 +167,55 @@ function updateDisplay() {
     return groupA.localeCompare(groupB);
   });
 
-  container.innerHTML = sortedGroups
-    .map(([groupName, groupRequests]) => `
-      <div class="request-group">
-        <div class="group-header">
-          <div class="group-header-left">
-            <button class="star-btn ${starredGroups.has(groupName) ? 'starred' : ''}" 
-                    data-group="${groupName}">
-              ${starredGroups.has(groupName) ? '⭐' : '☆'}
-            </button>
-            ${groupName}
+  // Build HTML efficiently
+  const html = sortedGroups
+    .map(([groupName, groupRequests]) => {
+      const requestsHtml = groupRequests.map((request, index) => {
+        const query = request.body?.query || '';
+        const operationType = getOperationType(query);
+        const operationName = request.operationName || 'Anonymous Operation';
+        const statusBadge = getStatusBadge(request.status);
+
+        return `
+          <div class="request-card ${request.status}" 
+               data-index="${filteredRequests.indexOf(request)}" 
+               data-status="${request.status}"
+               data-type="${operationType.toLowerCase()}">
+            <div class="request-info">
+              <span class="operation-name">${operationName}</span>
+            </div>
+            ${statusBadge}
           </div>
-          <span class="group-count">${groupRequests.length}</span>
-        </div>
-        <div class="group-content">
-          ${groupRequests.map((request, index) => {
-            const query = request.body?.query || '';
-            const operationType = getOperationType(query);
-            const operationName = request.operationName || 'Anonymous Operation';
-            const statusBadge = getStatusBadge(request.status);
+        `;
+      }).join('');
 
-            return `
-              <div class="request-card ${request.status}" 
-                   data-index="${filteredRequests.indexOf(request)}" 
-                   data-status="${request.status}"
-                   data-type="${operationType.toLowerCase()}">
-                <div class="request-info">
-                  <span class="operation-name">${operationName}</span>
-                </div>
-                ${statusBadge}
-              </div>
-            `;
-          }).join('')}
+      return `
+        <div class="request-group">
+          <div class="group-header">
+            <div class="group-header-left">
+              <button class="star-btn ${starredGroups.has(groupName) ? 'starred' : ''}" 
+                      data-group="${groupName}">
+                ${starredGroups.has(groupName) ? '⭐' : '☆'}
+              </button>
+              ${groupName}
+            </div>
+            <span class="group-count">${groupRequests.length}</span>
+          </div>
+          <div class="group-content">
+            ${requestsHtml}
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    })
+    .join('');
 
-  // Add star button handlers
+  container.innerHTML = html;
+
+  // Add event listeners efficiently
+  const debouncedSaveSettings = utils.debounce(async (settings) => {
+    await storage.saveSettings(settings);
+  }, 1000);
+
   document.querySelectorAll('.star-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -220,18 +225,21 @@ function updateDisplay() {
       } else {
         starredGroups.add(groupName);
       }
-      // Save to storage
-      await storage.saveSettings({
-        ...await storage.getSettings(),
+      
+      const settings = await storage.getSettings();
+      debouncedSaveSettings({
+        ...settings,
         starredGroups: Array.from(starredGroups)
       });
-      updateDisplay();
+      requestDisplayUpdate();
     });
   });
 
-  // Setup click handlers
-  document.querySelectorAll('.request-card').forEach((card, index) => {
-    card.addEventListener('click', () => showDetails(filteredRequests[card.dataset.index]));
+  document.querySelectorAll('.request-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const request = filteredRequests[card.dataset.index];
+      if (request) showDetails(request);
+    });
   });
 }
 
