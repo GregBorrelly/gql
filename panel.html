@@ -208,15 +208,17 @@
       position: relative;
       line-height: 1.5;
       overflow: auto;
+      white-space: pre;
     }
 
     .query-section pre {
       margin: 0;
-      white-space: pre-wrap;
+      white-space: pre;
       font-size: 13px;
       font-family: 'JetBrains Mono', monospace;
       line-height: 1.5;
       border-radius: 4px;
+      tab-size: 2;
     }
 
     .query-keyword {
@@ -747,54 +749,61 @@
 
     /* GraphQL Syntax Highlighting */
     .graphql-keyword {
-      color: #ff79c6; /* Pink for keywords like query, mutation */
+      color: #ff79c6;
+      font-weight: 600;
     }
 
     .graphql-operation-name {
-      color: #50fa7b; /* Green for operation names */
+      color: #50fa7b;
       font-weight: 500;
     }
 
     .graphql-field {
-      color: #8be9fd; /* Cyan for field names */
+      color: #8be9fd;
     }
 
     .graphql-argument-name {
-      color: #ffb86c; /* Orange for argument names */
+      color: #ffb86c;
     }
 
     .graphql-argument-value {
-      color: #f1fa8c; /* Yellow for argument values */
+      color: #f1fa8c;
     }
 
     .graphql-variable {
-      color: #bd93f9; /* Purple for variables */
+      color: #bd93f9;
+      font-style: italic;
     }
 
     .graphql-directive {
-      color: #ff5555; /* Red for directives */
+      color: #ff79c6;
+      font-style: italic;
     }
 
     .graphql-type {
-      color: #8be9fd; /* Cyan for types */
+      color: #8be9fd;
       font-style: italic;
     }
 
     .graphql-brace {
-      color: #f8f8f2; /* White for braces */
+      color: #f8f8f2;
+    }
+
+    .graphql-string {
+      color: #f1fa8c;
+    }
+
+    .graphql-number {
+      color: #bd93f9;
     }
 
     .graphql-comment {
-      color: #6272a4; /* Blue-grey for comments */
+      color: #6272a4;
       font-style: italic;
     }
 
-    .graphql-enum {
-      color: #bd93f9; /* Purple for enum values */
-    }
-
-    .graphql-scalar {
-      color: #50fa7b; /* Green for scalar values */
+    .graphql-argument {
+      color: #f8f8f2;
     }
 
     /* Dark mode overrides */
@@ -827,6 +836,45 @@
 
     body.dark-mode .variables-title {
       color: var(--text-primary);
+    }
+
+    /* NRQL Syntax Highlighting */
+    .request-card[data-type="nrql"] .operation-name {
+      color: #00B3D7;  /* New Relic blue */
+    }
+
+    /* NRQL specific syntax colors */
+    .graphql-string {
+      color: #50fa7b; /* Green for quoted strings */
+    }
+
+    .graphql-number {
+      color: #bd93f9; /* Purple for numbers */
+    }
+
+    .graphql-operator {
+      color: #ff79c6; /* Pink for operators */
+    }
+
+    /* Override some colors for NRQL keywords */
+    .request-card[data-type="nrql"] .graphql-keyword {
+      color: #00B3D7; /* New Relic blue for keywords */
+      font-weight: 600;
+    }
+
+    .request-card[data-type="nrql"] .graphql-type {
+      color: #50fa7b; /* Green for table names */
+      font-weight: 500;
+    }
+
+    .request-card[data-type="nrql"] .graphql-field {
+      color: #ff79c6; /* Pink for functions */
+      font-weight: 500;
+    }
+
+    /* Add spacing for NRQL queries */
+    .request-card[data-type="nrql"] pre {
+      line-height: 1.6;
     }
   </style>
 </head>

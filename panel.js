@@ -150,9 +150,9 @@ function updateDisplay() {
   const html = sortedGroups
     .map(([groupName, groupRequests]) => {
       const requestsHtml = groupRequests.map((request, index) => {
-        const query = request.body?.query || '';
+        const query = request.body?.query || request.query || '';
         const operationType = getOperationType(query);
-        const operationName = request.operationName || 'Anonymous Operation';
+        const operationName = getOperationName(query) || 'Anonymous Operation';
 
         return `
           <div class="request-card ${request.status}" 
@@ -227,11 +227,23 @@ function showDetails(request) {
   }
 
   const detailsPanel = document.getElementById('details-panel');
-  const query = request.query || request.requestBody?.query || '';
-  const formattedQuery = formatGraphQLQuery(query);
-  const highlightedQuery = highlightGraphQLSyntax(formattedQuery);
+  const query = request.query || request.body?.query || '';
+  console.log('Query from request:', query);
+  
   const operationType = getOperationType(query);
-  const operationName = request.operationName || 'Anonymous Operation';
+  const operationName = getOperationName(query) || 'Anonymous Operation';
+  
+  // Get variables from all possible locations
+  const variables = request.variables || request.body?.variables || request.requestBody?.variables;
+  
+  // Format and highlight the query
+  const formattedQuery = formatGraphQLQuery(query);
+  console.log('Formatted query:', formattedQuery);
+  
+  const highlightedQuery = highlightGraphQLSyntax(
+    operationType === 'nrql' ? formattedQuery : formattedQuery
+  );
+  console.log('Highlighted query:', highlightedQuery);
 
   document.querySelectorAll('.request-card').forEach(card => {
     card.classList.remove('selected');
@@ -242,55 +254,41 @@ function showDetails(request) {
     <div class="details-content">
       <div class="details-header">
         <div class="details-title">${operationName}</div>
-        <div class="meta-info">
-          <span class="operation-type ${operationType.toLowerCase()}">${operationType}</span>
-          <span>${request.url}</span>
-        </div>
       </div>
       <div class="tabs">
         <div class="tab active" data-tab="query">Query</div>
-        <div class="tab" data-tab="payload">Payload</div>
         ${request.response ? '<div class="tab" data-tab="response">Response</div>' : ''}
       </div>
       <div class="tab-content">
         <div class="tab-panel" id="detail-query" style="display: block;">
           <div class="query-section">
-            <button class="copy-btn" onclick="copyToClipboard(\`${formattedQuery.replace(/`/g, '\\`')}\`)">
-              <span>📋</span>
-              Copy
+            <button class="copy-btn" onclick="copyToClipboard(this, \`${formattedQuery.replace(/`/g, '\\`')}\`)">
+              <i class="mdi mdi-content-copy"></i>
+              <span>Copy</span>
             </button>
-            <pre>${highlightedQuery}</pre>
+            <pre><code>${highlightedQuery}</code></pre>
           </div>
-          ${request.requestBody?.variables ? `
+          ${variables ? `
             <div class="variables-section">
               <div class="variables-title">Variables</div>
               <div class="query-section">
-                <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.requestBody.variables, null, 2)}')">
-                  <span>📋</span>
-                  Copy
+                <button class="copy-btn" onclick="copyToClipboard(this, \`${JSON.stringify(variables, null, 2)}\`)">
+                  <i class="mdi mdi-content-copy"></i>
+                  <span>Copy</span>
                 </button>
-                <pre>${formatJSON(request.requestBody.variables)}</pre>
+                <pre><code>${formatJSON(variables)}</code></pre>
               </div>
             </div>
           ` : ''}
         </div>
-        <div class="tab-panel" id="detail-payload" style="display: none;">
-          <div class="query-section">
-            <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.requestBody || {}, null, 2)}')">
-              <span>📋</span>
-              Copy
-            </button>
-            <pre>${formatJSON(request.requestBody || {})}</pre>
-          </div>
-        </div>
         ${request.response ? `
           <div class="tab-panel" id="detail-response" style="display: none;">
             <div class="query-section">
-              <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.response, null, 2)}')">
-                <span>📋</span>
-                Copy
+              <button class="copy-btn" onclick="copyToClipboard(this, \`${JSON.stringify(request.response, null, 2)}\`)">
+                <i class="mdi mdi-content-copy"></i>
+                <span>Copy</span>
               </button>
-              <pre>${formatJSON(request.response)}</pre>
+              <pre><code>${formatJSON(request.response)}</code></pre>
             </div>
           </div>
         ` : ''}
@@ -347,11 +345,118 @@ function getStatusBadge(status) {
 
 function formatGraphQLQuery(query) {
   try {
-    return prettier.format(query, {
-      parser: "graphql",
-      plugins: prettierPlugins
-    });
+    console.log('Original query:', query);
+
+    // Check if it's a NRQL query
+    if (query.includes('nrql:"SELECT')) {
+      const nrqlPart = query.match(/nrql:"(.*?)"/s)?.[1];
+      if (nrqlPart) {
+        return nrqlPart
+          .replace(/\\n/g, '\n')
+          .replace(/SELECT\s+/i, 'SELECT ')
+          .replace(/FROM\s+/i, '\nFROM ')
+          .replace(/WHERE\s+/i, '\nWHERE ')
+          .replace(/TIMESERIES\s+/i, '\nTIMESERIES ')
+          .replace(/SINCE\s+/i, '\nSINCE ')
+          .replace(/UNTIL\s+/i, '\nUNTIL ')
+          .replace(/\bAND\s+/ig, 'AND ')
+          .replace(/\bAS\s+/ig, ' AS ')
+          .replace(/\bIS\s+/ig, ' IS ')
+          .replace(/\bNOT\s+/ig, ' NOT ')
+          .replace(/\bNULL\b/ig, 'NULL')
+          .replace(/\s{2,}/g, ' ')
+          .replace(/,\s*/g, ',\n    ')
+          .replace(/\n\s*\n/g, '\n');
+      }
+    }
+
+    // First, remove all extra whitespace
+    let formatted = query.trim().replace(/\s+/g, ' ');
+    
+    // Add spaces after keywords and fix initial structure
+    formatted = formatted
+      // Ensure space after 'query' keyword
+      .replace(/^query/, 'query ')
+      // Add space after operation name and arguments
+      .replace(/(query\s+\w+)(\([^)]*\))?\s*{/, '$1 $2 {')
+      // Add space after colons in arguments
+      .replace(/(\w+):/g, '$1: ')
+      // Fix spaces around argument values
+      .replace(/:\s*{/g, ': {')
+      .replace(/:\s*\[/g, ': [')
+      // Add space after commas
+      .replace(/,(?!\s)/g, ', ');
+
+    console.log('After first pass:', formatted);
+
+    // Second pass: handle nested structure
+    let result = '';
+    let depth = 0;
+    let inBraces = false;
+    let inParens = false;
+    
+    for (let i = 0; i < formatted.length; i++) {
+      const char = formatted[i];
+      const nextChar = formatted[i + 1] || '';
+      const prevChar = formatted[i - 1] || '';
+      
+      switch (char) {
+        case '{':
+          if (prevChar !== ' ') result += ' ';
+          result += '{\n' + '  '.repeat(depth + 1);
+          depth++;
+          inBraces = true;
+          break;
+        case '}':
+          depth = Math.max(0, depth - 1);
+          result = result.trimEnd() + '\n' + '  '.repeat(depth) + '}';
+          inBraces = false;
+          break;
+        case '(':
+          result += '(';
+          inParens = true;
+          break;
+        case ')':
+          result += ')';
+          inParens = false;
+          break;
+        case ' ':
+          // Only add space if not at the start of a line and not after certain characters
+          if (result[result.length - 1] !== '\n' && !/[{(]/.test(prevChar)) {
+            result += ' ';
+          }
+          break;
+        default:
+          // If we're starting a new field
+          if (result[result.length - 1] === '\n') {
+            result += '  '.repeat(depth);
+          }
+          result += char;
+      }
+      
+      // Add newline after fields
+      if (!inParens && char === ' ' && 
+          nextChar !== '{' && nextChar !== '(' && 
+          prevChar !== ')' && prevChar !== '{') {
+        result += '\n' + '  '.repeat(depth);
+      }
+    }
+
+    // Clean up
+    result = result
+      .replace(/\s+$/gm, '')  // Remove trailing spaces
+      .replace(/\n\s*\n/g, '\n')  // Remove empty lines
+      .replace(/{\s+}/g, '{ }')  // Clean up empty blocks
+      .replace(/\(\s+\)/g, '()')  // Clean up empty parentheses
+      .replace(/\(\s+/g, '(')  // Clean up spaces after opening parenthesis
+      .replace(/\s+\)/g, ')')  // Clean up spaces before closing parenthesis
+      .trim();
+
+    console.log('Final formatted result:', result);
+    return result;
+
   } catch (e) {
+    console.error('Error formatting query:', e);
     return query;
   }
 }
@@ -365,6 +470,12 @@ function copyToClipboard(text) {
 function getOperationType(query) {
   if (!query) return 'unknown';
   const trimmed = query.trim();
+  
+  // Check for NRQL query pattern
+  if (trimmed.includes('nrql:"SELECT')) {
+    return 'nrql';
+  }
+  
   if (trimmed.startsWith('query')) return 'query';
   if (trimmed.startsWith('mutation')) return 'mutation';
   if (trimmed.startsWith('subscription')) return 'subscription';
@@ -373,6 +484,21 @@ function getOperationType(query) {
 
 function getOperationName(query) {
   if (!query) return 'Anonymous Operation';
+  
+  // Handle NRQL queries
+  if (query.includes('nrql:"SELECT')) {
+    const nrqlQuery = query.match(/nrql:"(.*?)"/s)?.[1];
+    if (nrqlQuery) {
+      // Extract the first part of the SELECT statement
+      const selectMatch = nrqlQuery.match(/SELECT\s+([^FROM]+)/i);
+      if (selectMatch) {
+        const selectPart = selectMatch[1].trim().split(' AS ')[0];
+        return `NRQL Query: ${selectPart.slice(0, 30)}${selectPart.length > 30 ? '...' : ''}`;
+      }
+    }
+    return 'NRQL Query';
+  }
+  
   const match = query.match(/(?:query|mutation|subscription)\s+(\w+)/);
   return match ? match[1] : 'Anonymous Operation';
 }
@@ -411,40 +537,66 @@ function formatJSON(obj) {
 }
 
 function highlightGraphQLSyntax(query) {
+  // Check if it's a NRQL query
+  if (query.includes('SELECT')) {
+    return query
+      // NRQL Keywords
+      .replace(/\b(SELECT|FROM|WHERE|TIMESERIES|SINCE|UNTIL|AND|AS|IS|NOT|NULL)\b/gi, 
+        '<span class="graphql-keyword">$1</span>')
+      // Table names
+      .replace(/\bFROM\s+(\w+)/g, 
+        'FROM <span class="graphql-type">$1</span>')
+      // Functions
+      .replace(/(\w+)\(/g, 
+        '<span class="graphql-field">$1</span>(')
+      // Quoted strings
+      .replace(/'([^']+)'/g, 
+        '<span class="graphql-string">\'$1\'</span>')
+      // Numbers with units
+      .replace(/\b(\d+(?:\.\d+)?)\s*(DAY|DAYS|HOUR|HOURS|MINUTE|MINUTES)?\b/g, 
+        '<span class="graphql-number">$1</span>$2')
+      // Timestamps
+      .replace(/\b(\d{13})\b/g, 
+        '<span class="graphql-number">$1</span>')
+      // Operators
+      .replace(/\b(=|!=|>|<|>=|<=)\b/g, 
+        '<span class="graphql-operator">$1</span>');
+  }
+
+  // Original GraphQL highlighting
   return query
-    // Comments
-    .replace(/#[^\n]*/g, '<span class="graphql-comment">$&</span>')
-    // Keywords
-    .replace(/\b(query|mutation|subscription|fragment|on|type|input|enum|interface|union|scalar|directive|extend|schema)\b/g, '<span class="graphql-keyword">$1</span>')
-    // Operation names
-    .replace(/(?:query|mutation|subscription)\s+(\w+)/g, (match, name) => {
-      return match.replace(name, `<span class="graphql-operation-name">${name}</span>`);
+    // First, handle the operation definition
+    .replace(/^(query|mutation|subscription)\s+(\w+)(\s*\([^)]*\))?/g, (match, operation, name, args) => {
+      return `<span class="graphql-keyword">${operation}</span> ` +
+             `<span class="graphql-operation-name">${name}</span>` +
+             (args ? highlightArguments(args) : '');
     })
-    // Field names (including aliases)
-    .replace(/(\w+\s*:)?\s*(\w+)(?=\s*[\{\(\@\:\)]|\s*$)/g, (match, alias, field) => {
-      if (alias) {
-        return `<span class="graphql-field">${alias.trim()}</span> <span class="graphql-field">${field}</span>`;
-      }
-      return `<span class="graphql-field">${field}</span>`;
+    // Handle field arguments
+    .replace(/(\w+)\s*\((.*?)\)/g, (match, field, args) => {
+      return `<span class="graphql-field">${field}</span>(${highlightArguments(args)})`;
     })
-    // Arguments
-    .replace(/(\w+):\s*([^,\)\n\}]+)/g, (match, name, value) => {
-      return `<span class="graphql-argument-name">${name}</span>: <span class="graphql-argument-value">${value}</span>`;
-    })
-    // Variables
-    .replace(/(\$\w+)/g, '<span class="graphql-variable">$1</span>')
-    // Directives
-    .replace(/(@\w+)/g, '<span class="graphql-directive">$1</span>')
-    // Types
-    .replace(/:\s*(\[?\w+!?\]?!?)/g, (match, type) => {
-      return `: <span class="graphql-type">${type}</span>`;
-    })
-    // Braces and parentheses
-    .replace(/([\{\}\(\)])/g, '<span class="graphql-brace">$1</span>')
-    // Enum values (uppercase words)
-    .replace(/\b([A-Z][A-Z0-9_]+)\b/g, '<span class="graphql-enum">$1</span>')
-    // Scalar values
-    .replace(/\b(true|false|null|\d+(\.\d+)?)\b/g, '<span class="graphql-scalar">$1</span>');
+    // Handle field names (but not inside argument values)
+    .replace(/(\s|\{)(\w+)(?=\s|{|\(|$)/g, '$1<span class="graphql-field">$2</span>')
+    // Handle special fields
+    .replace(/__typename\b/g, '<span class="graphql-field">__typename</span>')
+    // Handle braces
+    .replace(/([{}])/g, '<span class="graphql-brace">$1</span>');
+}
+
+function highlightArguments(args) {
+  return args
+    // Highlight argument names
+    .replace(/(\w+):/g, '<span class="graphql-argument-name">$1</span>:')
+    // Highlight enum values
+    .replace(/:\s*([A-Z][A-Z0-9_]*)\b/g, ': <span class="graphql-enum">$1</span>')
+    // Highlight variables
+    .replace(/\$(\w+)/g, '<span class="graphql-variable">$$1</span>')
+    // Highlight string literals
+    .replace(/"([^"]*?)"/g, '<span class="graphql-string">"$1"</span>')
+    // Highlight numbers
+    .replace(/:\s*(\d+(?:\.\d+)?)/g, ': <span class="graphql-number">$1</span>')
+    // Highlight boolean and null
+    .replace(/:\s*(true|false|null)\b/g, ': <span class="graphql-keyword">$1</span>');
 }
 
 // Add this function to help with grouping
@@ -460,5 +612,6 @@ function getQueryGroup(operationName) {
   const words = baseName.split(' ');
   return words.slice(0, 2).join(' ');
 }
+
 
 // Keep existing utility functions (formatGraphQLQuery, copyToClipboard, etc.) 
