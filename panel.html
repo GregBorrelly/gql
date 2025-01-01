@@ -728,6 +728,15 @@
       text-shadow: 0 0 10px var(--primary);
     }
 
+    /* Update the star emoji color */
+    .star-btn.starred::before {
+      content: '⭐';
+      background: linear-gradient(45deg, var(--primary), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
+    }
+
     /* Add a subtle highlight for starred groups */
     .request-group:has(.star-btn.starred) .group-header {
       background: rgba(229, 53, 171, 0.1);

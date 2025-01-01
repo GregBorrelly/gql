@@ -172,7 +172,7 @@ function updateDisplay() {
             <div class="group-header-left">
               <button class="star-btn ${starredGroups.has(groupName) ? 'starred' : ''}" 
                       data-group="${groupName}">
-                ${starredGroups.has(groupName) ? '⭐' : '☆'}
+                ${starredGroups.has(groupName) ? '' : '☆'}
               </button>
               ${groupName}
             </div>
