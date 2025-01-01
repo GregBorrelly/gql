@@ -2,18 +2,18 @@
 let requests = [];
 let typeFilter = 'all';
 let statusFilter = 'all';
-let currentTheme = 'light';
-let starredGroups = new Set();
 let pendingDisplayUpdate = false;
+let starredGroups = new Set();
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     // Load saved settings and starred groups
     const settings = await storage.getSettings();
-    currentTheme = settings.theme;
     starredGroups = new Set(settings.starredGroups || []);
-    themes.applyTheme(currentTheme);
+    
+    // Apply dark theme by default
+    themes.applyTheme('dark');
 
     // Setup event listeners
     setupEventListeners();
@@ -31,12 +31,12 @@ function setupEventListeners() {
   // Search and filters with debouncing
   const debouncedUpdate = utils.debounce(requestDisplayUpdate, 150);
 
-  document.getElementById('type-filter').addEventListener('change', (e) => {
+  document.getElementById('type-filter')?.addEventListener('change', (e) => {
     typeFilter = e.target.value;
     debouncedUpdate();
   });
 
-  document.getElementById('status-filter').addEventListener('change', (e) => {
+  document.getElementById('status-filter')?.addEventListener('change', (e) => {
     statusFilter = e.target.value;
     debouncedUpdate();
   });
@@ -46,20 +46,6 @@ function setupEventListeners() {
     requests = [];
     await storage.clearHistory();
     requestDisplayUpdate();
-  });
-
-  // Theme toggle with debounced settings save
-  const debouncedSaveSettings = utils.debounce(async (settings) => {
-    await storage.saveSettings(settings);
-  }, 1000);
-
-  document.getElementById('theme-toggle').addEventListener('click', async () => {
-    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-    themes.applyTheme(currentTheme);
-    document.getElementById('theme-icon').textContent = currentTheme === 'light' ? '🌙' : '☀️';
-    
-    const settings = await storage.getSettings();
-    debouncedSaveSettings({ ...settings, theme: currentTheme });
   });
 }
 
@@ -167,7 +153,6 @@ function updateDisplay() {
         const query = request.body?.query || '';
         const operationType = getOperationType(query);
         const operationName = request.operationName || 'Anonymous Operation';
-        const statusBadge = getStatusBadge(request.status);
 
         return `
           <div class="request-card ${request.status}" 
@@ -177,7 +162,6 @@ function updateDisplay() {
             <div class="request-info">
               <span class="operation-name">${operationName}</span>
             </div>
-            ${statusBadge}
           </div>
         `;
       }).join('');
