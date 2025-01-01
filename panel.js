@@ -1,6 +1,5 @@
 // State management
 let requests = [];
-let searchTerm = '';
 let typeFilter = 'all';
 let statusFilter = 'all';
 let currentTheme = 'light';
@@ -31,11 +30,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupEventListeners() {
   // Search and filters with debouncing
   const debouncedUpdate = utils.debounce(requestDisplayUpdate, 150);
-  
-  document.getElementById('search-input').addEventListener('input', (e) => {
-    searchTerm = e.target.value.toLowerCase();
-    debouncedUpdate();
-  });
 
   document.getElementById('type-filter').addEventListener('change', (e) => {
     typeFilter = e.target.value;
@@ -143,10 +137,9 @@ function requestDisplayUpdate() {
 function updateDisplay() {
   const container = document.getElementById('requests');
   const filteredRequests = requests.filter(request => {
-    const matchesSearch = JSON.stringify(request).toLowerCase().includes(searchTerm);
     const matchesType = typeFilter === 'all' || getOperationType(request.body?.query).toLowerCase() === typeFilter;
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesType && matchesStatus;
   });
 
   // Group the requests
@@ -249,43 +242,17 @@ function showDetails(request) {
     return;
   }
 
-  console.log('[Panel] Showing details:', {
-    id: request.id,
-    status: request.status,
-    hasResponse: request.response !== null && request.response !== undefined,
-    responseType: typeof request.response,
-    response: request.response,
-    query: request.query,
-    requestBody: request.requestBody,
-    fullRequest: request
-  });
-
   const detailsPanel = document.getElementById('details-panel');
   const query = request.query || request.requestBody?.query || '';
   const formattedQuery = formatGraphQLQuery(query);
   const highlightedQuery = highlightGraphQLSyntax(formattedQuery);
   const operationType = getOperationType(query);
   const operationName = request.operationName || 'Anonymous Operation';
-  const queryDepth = utils.calculateQueryDepth(query);
 
   document.querySelectorAll('.request-card').forEach(card => {
     card.classList.remove('selected');
   });
   document.querySelector(`[data-index="${requests.indexOf(request)}"]`).classList.add('selected');
-
-  // Add logging to debug response data
-  console.log('[Panel] Request data for details:', {
-    operationName,
-    query,
-    formattedQuery,
-    requestBody: request.requestBody
-  });
-  
-  // Count GraphQL errors if they exist
-  const graphqlErrors = request.response?.errors || [];
-  const errorCount = graphqlErrors.length;
-  const hasErrors = errorCount > 0;
-  const hasResponse = request.response !== null && request.response !== undefined;
 
   detailsPanel.innerHTML = `
     <div class="details-content">
@@ -295,38 +262,11 @@ function showDetails(request) {
           <span class="operation-type ${operationType.toLowerCase()}">${operationType}</span>
           <span>${request.url}</span>
         </div>
-        <div class="metrics">
-          <div class="metric">
-            <span class="metric-label">Status</span>
-            <span class="metric-value">${getStatusBadge(request.status)}</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Duration</span>
-            <span class="metric-value">${request.duration ? `${request.duration.toFixed(0)}ms` : 'Pending'}</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Size</span>
-            <span class="metric-value">${utils.formatBytes(request.size)}</span>
-          </div>
-          <div class="metric">
-            <span class="metric-label">Depth</span>
-            <span class="metric-value">${queryDepth}</span>
-          </div>
-        </div>
-      </div>
-      <div class="actions-menu">
-        <button class="action-btn" onclick="copyToClipboard(utils.generateCurl(${JSON.stringify(request)}))" title="Copy as cURL">
-          <i class="mdi mdi-console"></i>
-        </button>
-        <button class="action-btn" onclick="copyToClipboard(utils.generateFetch(${JSON.stringify(request)}))" title="Copy as fetch">
-          <i class="mdi mdi-code-tags"></i>
-        </button>
       </div>
       <div class="tabs">
         <div class="tab active" data-tab="query">Query</div>
         <div class="tab" data-tab="payload">Payload</div>
-        ${hasResponse ? '<div class="tab" data-tab="response">Response</div>' : ''}
-        ${hasErrors ? `<div class="tab error-tab" data-tab="errors">Errors (${errorCount})</div>` : ''}
+        ${request.response ? '<div class="tab" data-tab="response">Response</div>' : ''}
       </div>
       <div class="tab-content">
         <div class="tab-panel" id="detail-query" style="display: block;">
@@ -359,7 +299,7 @@ function showDetails(request) {
             <pre>${formatJSON(request.requestBody || {})}</pre>
           </div>
         </div>
-        ${hasResponse ? `
+        ${request.response ? `
           <div class="tab-panel" id="detail-response" style="display: none;">
             <div class="query-section">
               <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(request.response, null, 2)}')">
@@ -367,17 +307,6 @@ function showDetails(request) {
                 Copy
               </button>
               <pre>${formatJSON(request.response)}</pre>
-            </div>
-          </div>
-        ` : ''}
-        ${hasErrors ? `
-          <div class="tab-panel" id="detail-errors" style="display: none;">
-            <div class="query-section error-section">
-              <button class="copy-btn" onclick="copyToClipboard('${JSON.stringify(graphqlErrors, null, 2)}')">
-                <span>📋</span>
-                Copy
-              </button>
-              <pre>${formatJSON(graphqlErrors)}</pre>
             </div>
           </div>
         ` : ''}

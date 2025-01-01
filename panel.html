@@ -803,53 +803,23 @@
               
               M25 45 L125 95
               M125 45 L25 95
-              M75 20 L75 120
-            " stroke="white" stroke-width="4" fill="none"/>
+              M75 20 L75 120" 
+              stroke="#E535AB" 
+              stroke-width="4" 
+              fill="none"/>
             
-            <!-- Nodes - perfectly circular -->
-            <circle cx="75" cy="20" r="10" fill="white"/>
-            <circle cx="125" cy="45" r="10" fill="white"/>
-            <circle cx="125" cy="95" r="10" fill="white"/>
-            <circle cx="75" cy="120" r="10" fill="white"/>
-            <circle cx="25" cy="95" r="10" fill="white"/>
-            <circle cx="25" cy="45" r="10" fill="white"/>
-            
-            <!-- Center node -->
-            <circle cx="75" cy="70" r="12" fill="#FF69B4"/>
-          </g>
-          
-          <!-- Magnifying glass -->
-          <g transform="translate(115, 115) rotate(-20)">
-            <!-- Glass -->
-            <circle cx="0" cy="0" r="35" 
-                    fill="none" 
-                    stroke="white" 
-                    stroke-width="8"/>
-            
-            <!-- Handle -->
-            <rect x="25" y="-4" width="45" height="8" 
-                  fill="white" 
-                  transform="rotate(45)"
-                  rx="4"/>
-            
-            <!-- Scanning effect -->
-            <circle cx="0" cy="0" r="28" 
-                    fill="none" 
-                    stroke="#FF69B4" 
-                    stroke-width="2"
-                    stroke-dasharray="4,4"/>
-            
-            <!-- Reflection -->
-            <path d="M-20 -15 Q-10 -25 0 -20" 
-                  stroke="white" 
-                  stroke-width="3" 
-                  fill="none"/>
+            <!-- Nodes -->
+            <circle cx="75" cy="20" r="8" fill="#E535AB"/>
+            <circle cx="125" cy="45" r="8" fill="#E535AB"/>
+            <circle cx="125" cy="95" r="8" fill="#E535AB"/>
+            <circle cx="75" cy="120" r="8" fill="#E535AB"/>
+            <circle cx="25" cy="95" r="8" fill="#E535AB"/>
+            <circle cx="25" cy="45" r="8" fill="#E535AB"/>
           </g>
         </svg>
         <span>GraphQL Inspector</span>
       </div>
       <div class="toolbar">
-        <input type="text" class="search-box" placeholder="Search requests..." id="search-input">
         <button class="toolbar-btn" id="clear-btn" title="Clear all requests">
           <i class="mdi mdi-broom"></i>
         </button>
