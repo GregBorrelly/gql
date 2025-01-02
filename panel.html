@@ -95,6 +95,11 @@
       color: white;
     }
 
+    .toolbar-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
     .toolbar-btn i {
       font-size: 20px;
     }
@@ -196,14 +201,14 @@
     }
 
     .tab-content {
-      padding: 16px;
+      padding: 0;
     }
 
     .query-section {
       font-family: 'JetBrains Mono', monospace;
       background: #282a36;
       color: #f8f8f2;
-      padding: 20px;
+      padding: 16px;
       border-radius: 8px;
       position: relative;
       line-height: 1.6;
@@ -213,6 +218,7 @@
       white-space: pre-wrap;
       word-break: break-word;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin: 0;
     }
 
     .query-section pre {
@@ -405,7 +411,7 @@
     }
 
     .details-content {
-      padding: 24px;
+      padding: 16px 24px;
     }
 
     .details-header {
@@ -648,7 +654,7 @@
     .tabs {
       display: flex;
       gap: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
 
     .tab {
@@ -984,6 +990,9 @@
         <span>GraphQL Inspector</span>
       </div>
       <div class="toolbar">
+        <button class="toolbar-btn" id="group-toggle-btn" title="Toggle smart grouping">
+          <i class="mdi mdi-group"></i>
+        </button>
         <button class="toolbar-btn" id="clear-btn" title="Clear all requests">
           <i class="mdi mdi-broom"></i>
         </button>

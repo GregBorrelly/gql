@@ -4,23 +4,47 @@ let typeFilter = 'all';
 let statusFilter = 'all';
 let pendingDisplayUpdate = false;
 let starredGroups = new Set();
+let isGroupingEnabled = false;
+
+// Helper function to check if two requests are duplicates
+function isDuplicateRequest(newRequest, existingRequest) {
+  // Compare query content
+  const newQuery = newRequest.body?.query || newRequest.query || '';
+  const existingQuery = existingRequest.body?.query || existingRequest.query || '';
+  
+  // Compare variables if they exist
+  const newVars = JSON.stringify(newRequest.body?.variables || newRequest.variables || {});
+  const existingVars = JSON.stringify(existingRequest.body?.variables || existingRequest.variables || {});
+  
+  return newQuery === existingQuery && newVars === existingVars;
+}
+
+// Helper function to add request without duplicates
+function addRequestWithoutDuplicates(newRequest) {
+  // Check last 5 requests for duplicates to avoid performance issues with large histories
+  const recentRequests = requests.slice(0, 5);
+  const isDuplicate = recentRequests.some(req => isDuplicateRequest(newRequest, req));
+  
+  if (!isDuplicate) {
+    requests.unshift(newRequest);
+  }
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // Load saved settings and starred groups
-    const settings = await storage.getSettings();
-    starredGroups = new Set(settings.starredGroups || []);
-    
     // Apply dark theme by default
     themes.applyTheme('dark');
 
     // Setup event listeners
     setupEventListeners();
     
-    // Load saved history
-    const history = await storage.getHistory();
-    requests = Array.isArray(history) ? history : [];
+    // Clear any existing history on page load
+    await storage.clearHistory();
+    await storage.clearSettings();
+    
+    // Reset requests array
+    requests = [];
     requestDisplayUpdate();
   } catch (e) {
     console.error('Initialization error:', e);
@@ -39,6 +63,13 @@ function setupEventListeners() {
   document.getElementById('status-filter')?.addEventListener('change', (e) => {
     statusFilter = e.target.value;
     debouncedUpdate();
+  });
+
+  // Group toggle button
+  document.getElementById('group-toggle-btn').addEventListener('click', () => {
+    isGroupingEnabled = !isGroupingEnabled;
+    document.getElementById('group-toggle-btn').classList.toggle('active', isGroupingEnabled);
+    requestDisplayUpdate();
   });
 
   // Clear button
@@ -68,7 +99,9 @@ backgroundPageConnection.onMessage.addListener(async (message) => {
 
     switch (baseType) {
       case 'graphql-request':
-        requests.unshift(...batchData);
+        batchData.forEach(request => {
+          addRequestWithoutDuplicates(request);
+        });
         requestDisplayUpdate();
         break;
         
@@ -94,7 +127,7 @@ backgroundPageConnection.onMessage.addListener(async (message) => {
 
   // Handle individual messages (legacy support)
   if (message.type === 'graphql-request') {
-    requests.unshift(message.data);
+    addRequestWithoutDuplicates(message.data);
     requestDisplayUpdate();
   } else if (message.type === 'request-completed') {
     const index = requests.findIndex(r => r.id === message.data.id);
@@ -128,63 +161,84 @@ function updateDisplay() {
     return matchesType && matchesStatus;
   });
 
-  // Group the requests
-  const groups = filteredRequests.reduce((acc, request) => {
-    const operationName = request.operationName || 'Anonymous Operation';
-    const group = getQueryGroup(operationName);
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(request);
-    return acc;
-  }, {});
+  let html;
+  
+  if (isGroupingEnabled) {
+    // Group the requests
+    const groups = filteredRequests.reduce((acc, request) => {
+      const operationName = request.operationName || 'Anonymous Operation';
+      const group = getQueryGroup(operationName);
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(request);
+      return acc;
+    }, {});
 
-  // Sort groups to put starred ones first
-  const sortedGroups = Object.entries(groups).sort(([groupA], [groupB]) => {
-    const aStarred = starredGroups.has(groupA);
-    const bStarred = starredGroups.has(groupB);
-    if (aStarred && !bStarred) return -1;
-    if (!aStarred && bStarred) return 1;
-    return groupA.localeCompare(groupB);
-  });
+    // Sort groups to put starred ones first
+    const sortedGroups = Object.entries(groups).sort(([groupA], [groupB]) => {
+      const aStarred = starredGroups.has(groupA);
+      const bStarred = starredGroups.has(groupB);
+      if (aStarred && !bStarred) return -1;
+      if (!aStarred && bStarred) return 1;
+      return groupA.localeCompare(groupB);
+    });
 
-  // Build HTML efficiently
-  const html = sortedGroups
-    .map(([groupName, groupRequests]) => {
-      const requestsHtml = groupRequests.map((request, index) => {
-        const query = request.body?.query || request.query || '';
-        const operationType = getOperationType(query);
-        const operationName = getOperationName(query) || 'Anonymous Operation';
+    html = sortedGroups
+      .map(([groupName, groupRequests]) => {
+        const requestsHtml = groupRequests.map((request) => {
+          const query = request.body?.query || request.query || '';
+          const operationType = getOperationType(query);
+          const operationName = getOperationName(query) || 'Anonymous Operation';
+
+          return `
+            <div class="request-card ${request.status}" 
+                 data-index="${filteredRequests.indexOf(request)}" 
+                 data-status="${request.status}"
+                 data-type="${operationType.toLowerCase()}">
+              <div class="request-info">
+                <span class="operation-name">${operationName}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
 
         return `
-          <div class="request-card ${request.status}" 
-               data-index="${filteredRequests.indexOf(request)}" 
-               data-status="${request.status}"
-               data-type="${operationType.toLowerCase()}">
-            <div class="request-info">
-              <span class="operation-name">${operationName}</span>
+          <div class="request-group">
+            <div class="group-header">
+              <div class="group-header-left">
+                <button class="star-btn ${starredGroups.has(groupName) ? 'starred' : ''}" 
+                        data-group="${groupName}">
+                  ${starredGroups.has(groupName) ? '' : '☆'}
+                </button>
+                ${groupName}
+              </div>
+              <span class="group-count">${groupRequests.length}</span>
+            </div>
+            <div class="group-content">
+              ${requestsHtml}
             </div>
           </div>
         `;
-      }).join('');
+      })
+      .join('');
+  } else {
+    // Sequential view
+    html = filteredRequests.map((request) => {
+      const query = request.body?.query || request.query || '';
+      const operationType = getOperationType(query);
+      const operationName = getOperationName(query) || 'Anonymous Operation';
 
       return `
-        <div class="request-group">
-          <div class="group-header">
-            <div class="group-header-left">
-              <button class="star-btn ${starredGroups.has(groupName) ? 'starred' : ''}" 
-                      data-group="${groupName}">
-                ${starredGroups.has(groupName) ? '' : '☆'}
-              </button>
-              ${groupName}
-            </div>
-            <span class="group-count">${groupRequests.length}</span>
-          </div>
-          <div class="group-content">
-            ${requestsHtml}
+        <div class="request-card ${request.status}" 
+             data-index="${filteredRequests.indexOf(request)}" 
+             data-status="${request.status}"
+             data-type="${operationType.toLowerCase()}">
+          <div class="request-info">
+            <span class="operation-name">${operationName}</span>
           </div>
         </div>
       `;
-    })
-    .join('');
+    }).join('');
+  }
 
   container.innerHTML = html;
 
@@ -218,6 +272,9 @@ function updateDisplay() {
       if (request) showDetails(request);
     });
   });
+
+  // Update group toggle button state
+  document.getElementById('group-toggle-btn').classList.toggle('active', isGroupingEnabled);
 }
 
 function showDetails(request) {
