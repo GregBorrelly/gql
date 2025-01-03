@@ -40,6 +40,37 @@ const messageQueue = new Map(); // Tab ID -> Message array
 let messageTimeout = null;
 const MESSAGE_BATCH_DELAY = 100; // 100ms batching window
 
+// Rate limiting implementation
+const RateLimit = {
+  windowMs: 1000, // 1 second window
+  maxRequests: 50, // max requests per window
+  requests: new Map(),
+
+  checkLimit(tabId) {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    
+    // Clean old requests
+    this.requests.forEach((timestamps, id) => {
+      this.requests.set(id, timestamps.filter(time => time > windowStart));
+    });
+
+    // Get/initialize request timestamps for this tab
+    const timestamps = this.requests.get(tabId) || [];
+    this.requests.set(tabId, timestamps);
+
+    // Check if under limit
+    if (timestamps.length >= this.maxRequests) {
+      console.warn(`[Background] Rate limit exceeded for tab ${tabId}`);
+      return false;
+    }
+
+    // Add new timestamp
+    timestamps.push(now);
+    return true;
+  }
+};
+
 function sendBatchedMessages(tabId) {
   const messages = messageQueue.get(tabId) || [];
   if (!messages.length) return;
@@ -102,6 +133,13 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
   if (message.type !== 'graphql-response') return;
 
   const tabId = sender.tab.id;
+  
+  // Check rate limit
+  if (!RateLimit.checkLimit(tabId)) {
+    console.warn('[Background] Request dropped due to rate limiting');
+    return true;
+  }
+
   const requestId = Math.random().toString(36).substring(7);
 
   console.log('[Background] Received response from content:', {

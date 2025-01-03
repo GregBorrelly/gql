@@ -6,6 +6,25 @@ let pendingDisplayUpdate = false;
 let starredGroups = new Set();
 let isGroupingEnabled = false;
 let globalFilter = '';
+let filterType = 'name';
+
+// Input validation utilities
+const InputValidation = {
+  maxLength: 100,
+  safeSearchRegex: /^[a-zA-Z0-9\s._\-:{}()[\]"']*$/,
+
+  sanitizeInput(input) {
+    if (!input) return '';
+    // Trim and limit length
+    input = input.trim().slice(0, this.maxLength);
+    // Remove potentially dangerous characters
+    return input.replace(/[^\w\s._\-:{}()[\]"']/g, '');
+  },
+
+  validateSearchInput(input) {
+    return this.safeSearchRegex.test(input);
+  }
+};
 
 // Helper function to check if two requests are duplicates
 function isDuplicateRequest(newRequest, existingRequest) {
@@ -56,7 +75,27 @@ function setupEventListeners() {
   // Global filter with debouncing
   const debouncedUpdate = utils.debounce(requestDisplayUpdate, 150);
 
+  document.getElementById('filter-type')?.addEventListener('change', (e) => {
+    filterType = e.target.value;
+    const searchInput = document.getElementById('global-filter');
+    if (searchInput) {
+      searchInput.placeholder = filterType === 'name' 
+        ? 'Filter by query name...' 
+        : 'Filter in response data...';
+    }
+    debouncedUpdate();
+  });
+
   document.getElementById('global-filter')?.addEventListener('input', (e) => {
+    const rawInput = e.target.value.trim();
+    
+    // Validate and sanitize input
+    if (!InputValidation.validateSearchInput(rawInput)) {
+      console.warn('[Panel] Invalid search input detected');
+      e.target.value = InputValidation.sanitizeInput(rawInput);
+      return;
+    }
+    
     globalFilter = e.target.value.trim().toLowerCase();
     debouncedUpdate();
   });
@@ -79,7 +118,7 @@ function setupEventListeners() {
   });
 
   // Clear button
-  document.getElementById('clear-btn').addEventListener('click', async () => {
+  document.getElementById('clear-btn')?.addEventListener('click', async () => {
     requests = [];
     await storage.clearHistory();
     requestDisplayUpdate();
@@ -339,8 +378,15 @@ function updateDisplay() {
 function highlightMatch(text, filterValue) {
   if (!filterValue) return text;
   
-  const regex = new RegExp(`(${filterValue})`, 'gi');
-  return text.replace(regex, '<span class="highlight">$1</span>');
+  // Sanitize the filter value for safe regex usage
+  const safeFilter = InputValidation.sanitizeInput(filterValue);
+  try {
+    const regex = new RegExp(`(${safeFilter})`, 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+  } catch (e) {
+    console.error('[Panel] Regex error:', e);
+    return text;
+  }
 }
 
 function setupEventHandlers(container) {
@@ -973,12 +1019,19 @@ function formatValueWithHighlight(value, filterValue) {
 function matchesFilter(request, filterValue) {
   if (!filterValue) return true;
 
-  // Only check response for matches
-  if (request.response && JSON.stringify(request.response).toLowerCase().includes(filterValue)) {
-    return true;
+  switch (filterType) {
+    case 'name':
+      // Only check operation name for name filter
+      const operationName = request.operationName || 'Anonymous Operation';
+      return operationName.toLowerCase().includes(filterValue);
+    
+    case 'response':
+      // Use existing response matching functionality
+      return request.response && JSON.stringify(request.response).toLowerCase().includes(filterValue);
+    
+    default:
+      return false;
   }
-
-  return false;
 }
 
 function findMatchLocations(request, filterValue) {
@@ -997,9 +1050,16 @@ function findMatchLocations(request, filterValue) {
     }
   };
 
-  // Only check response object
-  if (request.response) {
+  if (filterType === 'response' && request.response) {
+    // For response filtering, search through the entire response object
     matches(request.response, ['response']);
+  } else if (filterType === 'name') {
+    // For name filtering, only look at the operation name
+    if (request.operationName) {
+      matches(request.operationName, ['operationName']);
+    } else {
+      matches('Anonymous Operation', ['operationName']);
+    }
   }
 
   return locations;

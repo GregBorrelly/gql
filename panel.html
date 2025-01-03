@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>GraphQL Inspector</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>GraphQL Network Inspector</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
   <style>
@@ -1218,31 +1221,58 @@
     .filter-bar {
       max-width: 600px;
       margin: 0 auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .search-wrapper {
       position: relative;
-      width: 100%;
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 20px;
+    .filter-type-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 6px 8px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      min-width: 140px;
+    }
+
+    .filter-type-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .filter-type-select option {
+      background: var(--bg-dark);
+      color: white;
     }
 
     .search-input {
-      width: 100%;
+      flex: 1;
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 6px;
       padding: 8px 12px 8px 40px;
       color: white;
       font-size: 14px;
-      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 150px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 20px;
     }
 
     .search-input:focus {
@@ -1332,6 +1362,44 @@
       border-top-color: rgba(0, 0, 0, 0.9);
       margin-bottom: -4px;
     }
+
+    .filter-type-select {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 6px 8px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .filter-type-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .filter-type-select option {
+      background: var(--bg-dark);
+      color: white;
+    }
+
+    /* Update search input to accommodate dropdown */
+    .search-input {
+      padding-right: 120px;
+    }
+
+    body.dark-mode .filter-type-select {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .filter-type-select:focus {
+      background: rgba(0, 0, 0, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -1404,7 +1472,11 @@
         <div class="filter-bar">
           <div class="search-wrapper">
             <i class="mdi mdi-magnify search-icon"></i>
-            <input type="text" id="global-filter" class="search-input" placeholder="Filter requests by any value...">
+            <select id="filter-type" class="filter-type-select">
+              <option value="name">Query Name</option>
+              <option value="response">Query Response</option>
+            </select>
+            <input type="text" id="global-filter" class="search-input" placeholder="Filter requests...">
           </div>
         </div>
       </div>
@@ -1413,7 +1485,7 @@
           <i class="mdi mdi-group"></i>
         </button>
         <button class="toolbar-btn" id="clear-btn" title="Clear all requests">
-          <i class="mdi mdi-broom"></i>
+          <i class="mdi mdi-delete"></i>
         </button>
       </div>
     </header>
