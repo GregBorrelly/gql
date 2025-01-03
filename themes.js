@@ -13,14 +13,12 @@ const themes = {
     const themeColors = this[theme];
     if (!themeColors) return;
 
-    // Apply CSS variables
     Object.entries(themeColors).forEach(([key, value]) => {
       document.documentElement.style.setProperty(key, value);
     });
 
-    // Add dark mode class
     document.body.classList.add('dark-mode');
   }
 };
 
-window.themes = themes; 
+window.themes = themes;

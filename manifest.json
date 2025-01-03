@@ -1,24 +1,30 @@
 {
   "manifest_version": 3,
   "name": "GraphQL Network Inspector",
-  "version": "1.0",
-  "description": "Inspect GraphQL network requests",
+  "version": "1.0.0",
+  "description": "A developer tool for inspecting and analyzing GraphQL network requests in real-time. Monitor queries, mutations, and responses with syntax highlighting.",
+  "author": "",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
-    "scripting",
     "storage"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "*://*/*"
   ],
   "web_accessible_resources": [{
     "resources": ["injected.js"],
-    "matches": ["<all_urls>"]
+    "matches": ["*://*/*"]
   }],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [{
-    "matches": ["<all_urls>"],
+    "matches": ["*://*/*"],
     "js": ["content.js"],
     "run_at": "document_start"
   }],
