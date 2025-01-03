@@ -232,7 +232,7 @@ function updateDisplay() {
               <div class="request-info">
                 <span class="operation-name">
                   <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
-                  ${highlightMatch(operationName, globalFilter)}
+                  <span class="operation-text">${highlightMatch(operationName, globalFilter)}</span>
                   ${matchLocations.length > 0 ? `<span class="match-indicator" title="${generateMatchTooltip(matchLocations)}">
                     <i class="mdi mdi-target"></i>
                     <span class="match-count">${matchLocations.length}</span>
@@ -282,7 +282,7 @@ function updateDisplay() {
           <div class="request-info">
             <span class="operation-name">
               <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
-              ${highlightMatch(operationName, globalFilter)}
+              <span class="operation-text">${highlightMatch(operationName, globalFilter)}</span>
               ${matchLocations.length > 0 ? `<span class="match-indicator" title="${generateMatchTooltip(matchLocations)}">
                 <i class="mdi mdi-target"></i>
                 <span class="match-count">${matchLocations.length}</span>

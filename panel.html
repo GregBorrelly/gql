@@ -147,6 +147,8 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      min-width: 0;
+      width: 100%;
     }
 
     .route-info {
@@ -181,6 +183,15 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0;
+    }
+
+    .operation-text {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .timestamp {
@@ -954,6 +965,7 @@
     }
 
     .query-type-pill {
+      flex-shrink: 0;
       font-size: 12px;
       padding: 2px 8px;
       border-radius: 12px;
@@ -1256,6 +1268,7 @@
 
     /* Add these new styles for match indicators */
     .match-indicator {
+      flex-shrink: 0;
       display: inline-flex;
       align-items: center;
       gap: 4px;
