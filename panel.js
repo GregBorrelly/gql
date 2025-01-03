@@ -5,6 +5,7 @@ let statusFilter = 'all';
 let pendingDisplayUpdate = false;
 let starredGroups = new Set();
 let isGroupingEnabled = false;
+let globalFilter = '';
 
 // Helper function to check if two requests are duplicates
 function isDuplicateRequest(newRequest, existingRequest) {
@@ -52,8 +53,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function setupEventListeners() {
-  // Search and filters with debouncing
+  // Global filter with debouncing
   const debouncedUpdate = utils.debounce(requestDisplayUpdate, 150);
+
+  document.getElementById('global-filter')?.addEventListener('input', (e) => {
+    globalFilter = e.target.value.trim().toLowerCase();
+    debouncedUpdate();
+  });
 
   document.getElementById('type-filter')?.addEventListener('change', (e) => {
     typeFilter = e.target.value;
@@ -182,7 +188,8 @@ function updateDisplay() {
   const filteredRequests = requests.filter(request => {
     const matchesType = typeFilter === 'all' || getOperationType(request.body?.query).toLowerCase() === typeFilter;
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    return matchesType && matchesStatus;
+    const matchesGlobalFilter = matchesFilter(request, globalFilter);
+    return matchesType && matchesStatus && matchesGlobalFilter;
   });
 
   let html;
@@ -213,18 +220,25 @@ function updateDisplay() {
           const operationType = getOperationType(query);
           const operationName = getOperationName(query) || 'Anonymous Operation';
           const route = request.pagePath || '/';
+          const matchLocations = globalFilter ? findMatchLocations(request, globalFilter) : [];
+          const requestIndex = requests.indexOf(request); // Use original requests array index
 
           return `
             <div class="request-card ${request.status}" 
-                 data-index="${filteredRequests.indexOf(request)}" 
+                 data-index="${requestIndex}" 
                  data-status="${request.status}"
-                 data-type="${operationType.toLowerCase()}">
+                 data-type="${operationType.toLowerCase()}"
+                 data-match-locations='${JSON.stringify(matchLocations)}'>
               <div class="request-info">
                 <span class="operation-name">
                   <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
-                  ${operationName}
+                  ${highlightMatch(operationName, globalFilter)}
+                  ${matchLocations.length > 0 ? `<span class="match-indicator" title="${generateMatchTooltip(matchLocations)}">
+                    <i class="mdi mdi-target"></i>
+                    <span class="match-count">${matchLocations.length}</span>
+                  </span>` : ''}
                 </span>
-                <span class="route-info">${route}</span>
+                <span class="route-info">${highlightMatch(route, globalFilter)}</span>
               </div>
             </div>
           `;
@@ -238,7 +252,7 @@ function updateDisplay() {
                         data-group="${groupName}">
                   ${starredGroups.has(groupName) ? '' : '☆'}
                 </button>
-                ${groupName}
+                ${highlightMatch(groupName, globalFilter)}
               </div>
               <span class="group-count">${groupRequests.length}</span>
             </div>
@@ -256,18 +270,25 @@ function updateDisplay() {
       const operationType = getOperationType(query);
       const operationName = getOperationName(query) || 'Anonymous Operation';
       const route = request.pagePath || '/';
+      const matchLocations = globalFilter ? findMatchLocations(request, globalFilter) : [];
+      const requestIndex = requests.indexOf(request); // Use original requests array index
 
       return `
         <div class="request-card ${request.status}" 
-             data-index="${filteredRequests.indexOf(request)}" 
+             data-index="${requestIndex}" 
              data-status="${request.status}"
-             data-type="${operationType.toLowerCase()}">
+             data-type="${operationType.toLowerCase()}"
+             data-match-locations='${JSON.stringify(matchLocations)}'>
           <div class="request-info">
             <span class="operation-name">
               <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
-              ${operationName}
+              ${highlightMatch(operationName, globalFilter)}
+              ${matchLocations.length > 0 ? `<span class="match-indicator" title="${generateMatchTooltip(matchLocations)}">
+                <i class="mdi mdi-target"></i>
+                <span class="match-count">${matchLocations.length}</span>
+              </span>` : ''}
             </span>
-            <span class="route-info">${route}</span>
+            <span class="route-info">${highlightMatch(route, globalFilter)}</span>
           </div>
         </div>
       `;
@@ -275,7 +296,17 @@ function updateDisplay() {
   }
 
   container.innerHTML = html;
+  setupEventHandlers(container);
+}
 
+function highlightMatch(text, filterValue) {
+  if (!filterValue) return text;
+  
+  const regex = new RegExp(`(${filterValue})`, 'gi');
+  return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+function setupEventHandlers(container) {
   // Add event listeners efficiently
   const debouncedSaveSettings = utils.debounce(async (settings) => {
     await storage.saveSettings(settings);
@@ -302,8 +333,11 @@ function updateDisplay() {
 
   document.querySelectorAll('.request-card').forEach(card => {
     card.addEventListener('click', () => {
-      const request = filteredRequests[card.dataset.index];
-      if (request) showDetails(request);
+      const requestIndex = parseInt(card.dataset.index);
+      const request = requests[requestIndex]; // Use the original index to get the request
+      if (request) {
+        showDetails(request);
+      }
     });
   });
 
@@ -339,7 +373,16 @@ function showDetails(request) {
   document.querySelectorAll('.request-card').forEach(card => {
     card.classList.remove('selected');
   });
-  document.querySelector(`[data-index="${requests.indexOf(request)}"]`).classList.add('selected');
+  const selectedCard = document.querySelector(`[data-index="${requests.indexOf(request)}"]`);
+  selectedCard.classList.add('selected');
+
+  // Get match locations if there's a global filter
+  const matchLocations = selectedCard.dataset.matchLocations ? JSON.parse(selectedCard.dataset.matchLocations) : [];
+
+  // Format response with highlights if there's a global filter
+  const formattedResponse = globalFilter ? 
+    formatJSONWithHighlight(request.response, globalFilter).html : 
+    formatJSON(request.response);
 
   detailsPanel.innerHTML = `
     <div class="details-content">
@@ -379,7 +422,7 @@ function showDetails(request) {
                 <i class="mdi mdi-content-copy"></i>
                 <span>Copy</span>
               </button>
-              <pre><code>${formatJSON(request.response)}</code></pre>
+              <pre><code id="response-content">${formattedResponse}</code></pre>
             </div>
           </div>
         ` : ''}
@@ -388,6 +431,21 @@ function showDetails(request) {
   `;
 
   setupTabHandlers(detailsPanel);
+
+  // If there are matches and we're using a global filter, switch to response tab and scroll to first match
+  if (matchLocations.length > 0 && globalFilter) {
+    const responseTab = detailsPanel.querySelector('[data-tab="response"]');
+    if (responseTab) {
+      responseTab.click();
+      setTimeout(() => {
+        const firstMatch = document.querySelector('.highlight');
+        if (firstMatch) {
+          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstMatch.classList.add('current-highlight');
+        }
+      }, 100);
+    }
+  }
 }
 
 function setupTabHandlers(container) {
@@ -704,5 +762,253 @@ function getQueryGroup(operationName) {
   return words.slice(0, 2).join(' ');
 }
 
+function setupResponseFilter(request) {
+  const filterInput = document.getElementById('response-filter');
+  const filterMatches = document.getElementById('filter-matches');
+  if (!filterInput || !filterMatches) return;
+
+  let currentHighlightIndex = -1;
+  let matches = [];
+
+  filterInput.addEventListener('input', (e) => {
+    const filterValue = e.target.value.trim().toLowerCase();
+    const responseContent = document.getElementById('response-content');
+    
+    if (!filterValue) {
+      // Reset highlighting when filter is empty
+      responseContent.innerHTML = formatJSON(request.response);
+      filterMatches.innerHTML = '';
+      matches = [];
+      currentHighlightIndex = -1;
+      return;
+    }
+
+    // Format JSON with highlighting for matching values
+    const { html, matchCount } = formatJSONWithHighlight(request.response, filterValue);
+    responseContent.innerHTML = html;
+    matches = document.querySelectorAll('.highlight');
+    
+    // Update matches count
+    filterMatches.innerHTML = matchCount > 0 
+      ? `<span class="match-count">${matchCount} matches found</span>` 
+      : '<span class="no-matches">No matches found</span>';
+
+    // Scroll to first match if exists
+    if (matches.length > 0) {
+      currentHighlightIndex = 0;
+      matches[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      matches[0].classList.add('current-highlight');
+    }
+  });
+
+  // Add navigation buttons
+  const navButtons = document.createElement('div');
+  navButtons.className = 'filter-nav-buttons';
+  navButtons.innerHTML = `
+    <button class="nav-btn prev-match" title="Previous match">
+      <i class="mdi mdi-chevron-up"></i>
+    </button>
+    <button class="nav-btn next-match" title="Next match">
+      <i class="mdi mdi-chevron-down"></i>
+    </button>
+  `;
+  filterInput.parentElement.appendChild(navButtons);
+
+  // Handle navigation
+  navButtons.querySelector('.prev-match').addEventListener('click', () => {
+    if (matches.length === 0) return;
+    matches[currentHighlightIndex]?.classList.remove('current-highlight');
+    currentHighlightIndex = (currentHighlightIndex - 1 + matches.length) % matches.length;
+    matches[currentHighlightIndex].classList.add('current-highlight');
+    matches[currentHighlightIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  navButtons.querySelector('.next-match').addEventListener('click', () => {
+    if (matches.length === 0) return;
+    matches[currentHighlightIndex]?.classList.remove('current-highlight');
+    currentHighlightIndex = (currentHighlightIndex + 1) % matches.length;
+    matches[currentHighlightIndex].classList.add('current-highlight');
+    matches[currentHighlightIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+function formatJSONWithHighlight(obj, filterValue) {
+  if (typeof obj !== 'object' || obj === null) {
+    return formatValueWithHighlight(obj, filterValue);
+  }
+
+  try {
+    const json = JSON.stringify(obj, null, 2);
+    let matchCount = 0;
+    const html = json
+      // Handle nested structures
+      .replace(/^( *)("[\w-]+"):/gm, '$1<span class="json-key">$2</span>:')
+      // Handle string values with highlighting
+      .replace(/: "([^"]*)"/g, (match, value) => {
+        if (value.toLowerCase().includes(filterValue)) {
+          matchCount++;
+          return `: <span class="json-string highlight">"${value}"</span>`;
+        }
+        return `: <span class="json-string">"${value}"</span>`;
+      })
+      // Handle numbers with highlighting
+      .replace(/: (\d+\.?\d*)/g, (match, value) => {
+        if (value.toString().toLowerCase().includes(filterValue)) {
+          matchCount++;
+          return `: <span class="json-number highlight">${value}</span>`;
+        }
+        return `: <span class="json-number">${value}</span>`;
+      })
+      // Handle booleans with highlighting
+      .replace(/: (true|false)/g, (match, value) => {
+        if (value.toLowerCase().includes(filterValue)) {
+          matchCount++;
+          return `: <span class="json-boolean highlight">${value}</span>`;
+        }
+        return `: <span class="json-boolean">${value}</span>`;
+      })
+      // Handle null with highlighting
+      .replace(/: (null)/g, (match, value) => {
+        if (value.toLowerCase().includes(filterValue)) {
+          matchCount++;
+          return `: <span class="json-null highlight">${value}</span>`;
+        }
+        return `: <span class="json-null">${value}</span>`;
+      })
+      // Handle array brackets and object braces
+      .replace(/[\[\]{}]/g, '<span class="json-brace">$&</span>');
+
+    return { html, matchCount };
+  } catch (e) {
+    return { html: String(obj), matchCount: 0 };
+  }
+}
+
+function formatValueWithHighlight(value, filterValue) {
+  let matchCount = 0;
+  if (value === null) return { html: '<span class="json-null">null</span>', matchCount };
+  
+  if (typeof value === 'string') {
+    if (value.toLowerCase().includes(filterValue)) {
+      matchCount++;
+      return { 
+        html: `<span class="json-string highlight">"${value}"</span>`,
+        matchCount 
+      };
+    }
+    return { 
+      html: `<span class="json-string">"${value}"</span>`,
+      matchCount 
+    };
+  }
+  
+  if (typeof value === 'number') {
+    if (value.toString().toLowerCase().includes(filterValue)) {
+      matchCount++;
+      return { 
+        html: `<span class="json-number highlight">${value}</span>`,
+        matchCount 
+      };
+    }
+    return { 
+      html: `<span class="json-number">${value}</span>`,
+      matchCount 
+    };
+  }
+  
+  if (typeof value === 'boolean') {
+    if (value.toString().toLowerCase().includes(filterValue)) {
+      matchCount++;
+      return { 
+        html: `<span class="json-boolean highlight">${value}</span>`,
+        matchCount 
+      };
+    }
+    return { 
+      html: `<span class="json-boolean">${value}</span>`,
+      matchCount 
+    };
+  }
+  
+  return { html: value, matchCount };
+}
+
+function matchesFilter(request, filterValue) {
+  if (!filterValue) return true;
+
+  // Helper function to check if a value matches the filter
+  const matches = (value) => {
+    if (value == null) return false;
+    return String(value).toLowerCase().includes(filterValue);
+  };
+
+  // Check operation name
+  if (matches(request.operationName)) return true;
+
+  // Check query
+  if (matches(request.query) || matches(request.body?.query)) return true;
+
+  // Check variables
+  const variables = request.variables || request.body?.variables || request.requestBody?.variables;
+  if (variables && matches(JSON.stringify(variables))) return true;
+
+  // Check response
+  if (request.response && matches(JSON.stringify(request.response))) return true;
+
+  // Check path
+  if (matches(request.pagePath)) return true;
+
+  return false;
+}
+
+function findMatchLocations(request, filterValue) {
+  const locations = [];
+  const matches = (value, path) => {
+    if (value == null) return;
+    if (typeof value === 'object') {
+      Object.entries(value).forEach(([key, val]) => {
+        matches(val, [...path, key]);
+      });
+    } else if (String(value).toLowerCase().includes(filterValue)) {
+      locations.push({
+        path: path.join('.'),
+        value: String(value)
+      });
+    }
+  };
+
+  // Check response
+  if (request.response) {
+    matches(request.response, ['response']);
+  }
+
+  // Check variables
+  const variables = request.variables || request.body?.variables || request.requestBody?.variables;
+  if (variables) {
+    matches(variables, ['variables']);
+  }
+
+  // Check query
+  if (request.query || request.body?.query) {
+    const query = request.query || request.body.query;
+    if (query.toLowerCase().includes(filterValue)) {
+      locations.push({
+        path: 'query',
+        value: query
+      });
+    }
+  }
+
+  return locations;
+}
+
+function generateMatchTooltip(locations) {
+  return locations.map(loc => `${loc.path}: ${truncateValue(loc.value)}`).join('\n');
+}
+
+function truncateValue(value, maxLength = 50) {
+  if (value.length <= maxLength) return value;
+  return value.substring(0, maxLength - 3) + '...';
+}
 
 // Keep existing utility functions (formatGraphQLQuery, copyToClipboard, etc.) 

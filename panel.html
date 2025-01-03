@@ -114,12 +114,9 @@
       border: 1px solid var(--border-color);
       border-radius: 8px;
       margin-bottom: 8px;
-      padding: 10px 16px;
+      overflow: hidden;
+      padding: 12px 16px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: all 0.2s;
     }
 
     .request-card:hover {
@@ -987,6 +984,343 @@
       padding: 12px 16px;
       cursor: pointer;
     }
+
+    /* Response filter styles */
+    .response-filter {
+      padding: 12px 16px;
+      background: var(--bg-light);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .filter-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .filter-info {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .filter-matches {
+      font-size: 12px;
+      color: var(--primary);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .match-count {
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .no-matches {
+      color: #666;
+      font-style: italic;
+    }
+
+    .filter-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: white;
+      transition: border-color 0.2s;
+    }
+
+    .filter-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .filter-input::placeholder {
+      color: #999;
+    }
+
+    .filter-nav-buttons {
+      display: flex;
+      gap: 4px;
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .nav-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 4px;
+      cursor: pointer;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .nav-btn i {
+      font-size: 18px;
+    }
+
+    /* Highlight styles */
+    .highlight {
+      background: rgba(229, 53, 171, 0.1);
+      border-radius: 2px;
+      padding: 0 2px;
+      margin: 0 -2px;
+      position: relative;
+    }
+
+    .current-highlight {
+      background: rgba(229, 53, 171, 0.3);
+      box-shadow: 0 0 0 2px rgba(229, 53, 171, 0.2);
+    }
+
+    .json-string.highlight {
+      background: rgba(80, 250, 123, 0.1);
+    }
+
+    .json-string.highlight.current-highlight {
+      background: rgba(80, 250, 123, 0.3);
+      box-shadow: 0 0 0 2px rgba(80, 250, 123, 0.2);
+    }
+
+    .json-number.highlight {
+      background: rgba(189, 147, 249, 0.1);
+    }
+
+    .json-number.highlight.current-highlight {
+      background: rgba(189, 147, 249, 0.3);
+      box-shadow: 0 0 0 2px rgba(189, 147, 249, 0.2);
+    }
+
+    .json-boolean.highlight {
+      background: rgba(139, 233, 253, 0.1);
+    }
+
+    .json-boolean.highlight.current-highlight {
+      background: rgba(139, 233, 253, 0.3);
+      box-shadow: 0 0 0 2px rgba(139, 233, 253, 0.2);
+    }
+
+    .json-null.highlight {
+      background: rgba(255, 85, 85, 0.1);
+    }
+
+    .json-null.highlight.current-highlight {
+      background: rgba(255, 85, 85, 0.3);
+      box-shadow: 0 0 0 2px rgba(255, 85, 85, 0.2);
+    }
+
+    /* Dark mode overrides for filter and highlight */
+    body.dark-mode .filter-input {
+      background: var(--bg-dark);
+      color: white;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    body.dark-mode .filter-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    body.dark-mode .filter-info {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    body.dark-mode .no-matches {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    body.dark-mode .nav-btn {
+      border-color: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    body.dark-mode .nav-btn:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    body.dark-mode .highlight {
+      background: rgba(229, 53, 171, 0.2);
+    }
+
+    body.dark-mode .current-highlight {
+      background: rgba(229, 53, 171, 0.4);
+      box-shadow: 0 0 0 2px rgba(229, 53, 171, 0.3);
+    }
+
+    body.dark-mode .json-string.highlight {
+      background: rgba(80, 250, 123, 0.2);
+    }
+
+    body.dark-mode .json-string.highlight.current-highlight {
+      background: rgba(80, 250, 123, 0.4);
+      box-shadow: 0 0 0 2px rgba(80, 250, 123, 0.3);
+    }
+
+    body.dark-mode .json-number.highlight {
+      background: rgba(189, 147, 249, 0.2);
+    }
+
+    body.dark-mode .json-number.highlight.current-highlight {
+      background: rgba(189, 147, 249, 0.4);
+      box-shadow: 0 0 0 2px rgba(189, 147, 249, 0.3);
+    }
+
+    body.dark-mode .json-boolean.highlight {
+      background: rgba(139, 233, 253, 0.2);
+    }
+
+    body.dark-mode .json-boolean.highlight.current-highlight {
+      background: rgba(139, 233, 253, 0.4);
+      box-shadow: 0 0 0 2px rgba(139, 233, 253, 0.3);
+    }
+
+    body.dark-mode .json-null.highlight {
+      background: rgba(255, 85, 85, 0.2);
+    }
+
+    body.dark-mode .json-null.highlight.current-highlight {
+      background: rgba(255, 85, 85, 0.4);
+      box-shadow: 0 0 0 2px rgba(255, 85, 85, 0.3);
+    }
+
+    .header-content {
+      flex: 1;
+      margin: 0 24px;
+    }
+
+    .filter-bar {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 20px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 8px 12px 8px 40px;
+      color: white;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--primary);
+    }
+
+    .search-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Dark mode overrides */
+    body.dark-mode .search-input {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-mode .search-input:focus {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Add these new styles for match indicators */
+    .match-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(229, 53, 171, 0.1);
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--primary);
+      margin-left: 8px;
+      cursor: help;
+    }
+
+    .match-indicator i {
+      font-size: 14px;
+    }
+
+    .match-indicator .match-count {
+      font-weight: 500;
+    }
+
+    .match-indicator:hover {
+      background: rgba(229, 53, 171, 0.2);
+    }
+
+    /* Dark mode overrides for match indicator */
+    body.dark-mode .match-indicator {
+      background: rgba(229, 53, 171, 0.15);
+    }
+
+    body.dark-mode .match-indicator:hover {
+      background: rgba(229, 53, 171, 0.25);
+    }
+
+    /* Tooltip styles */
+    [title] {
+      position: relative;
+    }
+
+    [title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: pre-line;
+      z-index: 1000;
+      max-width: 300px;
+      margin-bottom: 8px;
+    }
+
+    [title]:hover::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.9);
+      margin-bottom: -4px;
+    }
   </style>
 </head>
 <body>
@@ -1054,6 +1388,14 @@
           </g>
         </svg>
         <span>GraphQL Inspector</span>
+      </div>
+      <div class="header-content">
+        <div class="filter-bar">
+          <div class="search-wrapper">
+            <i class="mdi mdi-magnify search-icon"></i>
+            <input type="text" id="global-filter" class="search-input" placeholder="Filter requests by any value...">
+          </div>
+        </div>
       </div>
       <div class="toolbar">
         <button class="toolbar-btn" id="group-toggle-btn" title="Toggle smart grouping">
