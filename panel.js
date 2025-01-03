@@ -936,27 +936,10 @@ function formatValueWithHighlight(value, filterValue) {
 function matchesFilter(request, filterValue) {
   if (!filterValue) return true;
 
-  // Helper function to check if a value matches the filter
-  const matches = (value) => {
-    if (value == null) return false;
-    return String(value).toLowerCase().includes(filterValue);
-  };
-
-  // Check operation name
-  if (matches(request.operationName)) return true;
-
-  // Check query
-  if (matches(request.query) || matches(request.body?.query)) return true;
-
-  // Check variables
-  const variables = request.variables || request.body?.variables || request.requestBody?.variables;
-  if (variables && matches(JSON.stringify(variables))) return true;
-
-  // Check response
-  if (request.response && matches(JSON.stringify(request.response))) return true;
-
-  // Check path
-  if (matches(request.pagePath)) return true;
+  // Only check response for matches
+  if (request.response && JSON.stringify(request.response).toLowerCase().includes(filterValue)) {
+    return true;
+  }
 
   return false;
 }
@@ -977,26 +960,9 @@ function findMatchLocations(request, filterValue) {
     }
   };
 
-  // Check response
+  // Only check response object
   if (request.response) {
     matches(request.response, ['response']);
-  }
-
-  // Check variables
-  const variables = request.variables || request.body?.variables || request.requestBody?.variables;
-  if (variables) {
-    matches(variables, ['variables']);
-  }
-
-  // Check query
-  if (request.query || request.body?.query) {
-    const query = request.query || request.body.query;
-    if (query.toLowerCase().includes(filterValue)) {
-      locations.push({
-        path: 'query',
-        value: query
-      });
-    }
   }
 
   return locations;
