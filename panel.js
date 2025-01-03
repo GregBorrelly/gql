@@ -195,7 +195,10 @@ function updateDisplay() {
                  data-status="${request.status}"
                  data-type="${operationType.toLowerCase()}">
               <div class="request-info">
-                <span class="operation-name">${operationName}</span>
+                <span class="operation-name">
+                  <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
+                  ${operationName}
+                </span>
               </div>
             </div>
           `;
@@ -233,7 +236,10 @@ function updateDisplay() {
              data-status="${request.status}"
              data-type="${operationType.toLowerCase()}">
           <div class="request-info">
-            <span class="operation-name">${operationName}</span>
+            <span class="operation-name">
+              <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
+              ${operationName}
+            </span>
           </div>
         </div>
       `;

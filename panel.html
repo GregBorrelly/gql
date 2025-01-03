@@ -921,6 +921,44 @@
     .query-section:hover::after {
       opacity: 1;
     }
+
+    .operation-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .query-type-pill {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: white;
+    }
+
+    .query-type-pill.query {
+      background: #E535AB;  /* Pink color matching the GraphQL theme */
+    }
+
+    .query-type-pill.mutation {
+      background: #9C27B0;  /* Deep purple for mutations */
+    }
+
+    .query-type-pill.nrql {
+      background: #2E7D32;  /* Rich green for NRQL */
+    }
+
+    /* Update request card styles */
+    .request-card {
+      background: var(--bg-light);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
