@@ -100,7 +100,18 @@ backgroundPageConnection.onMessage.addListener(async (message) => {
     switch (baseType) {
       case 'graphql-request':
         batchData.forEach(request => {
-          addRequestWithoutDuplicates(request);
+          if (!requests.some(r => r.id === request.id)) {  // Only for new requests
+            chrome.devtools.inspectedWindow.eval(
+              'window.location.pathname',
+              (result, isException) => {
+                const currentPath = isException ? '/' : result;
+                addRequestWithoutDuplicates({
+                  ...request,
+                  pagePath: currentPath
+                });
+              }
+            );
+          }
         });
         requestDisplayUpdate();
         break;
@@ -114,7 +125,8 @@ backgroundPageConnection.onMessage.addListener(async (message) => {
               ...requests[index],
               status: data.status,
               duration: data.duration,
-              response: data.response
+              response: data.response,
+              pagePath: requests[index].pagePath  // Preserve the original path
             };
             updated = true;
           }
@@ -127,8 +139,19 @@ backgroundPageConnection.onMessage.addListener(async (message) => {
 
   // Handle individual messages (legacy support)
   if (message.type === 'graphql-request') {
-    addRequestWithoutDuplicates(message.data);
-    requestDisplayUpdate();
+    if (!requests.some(r => r.id === message.data.id)) {  // Only for new requests
+      chrome.devtools.inspectedWindow.eval(
+        'window.location.pathname',
+        (result, isException) => {
+          const currentPath = isException ? '/' : result;
+          addRequestWithoutDuplicates({
+            ...message.data,
+            pagePath: currentPath
+          });
+          requestDisplayUpdate();
+        }
+      );
+    }
   } else if (message.type === 'request-completed') {
     const index = requests.findIndex(r => r.id === message.data.id);
     if (index !== -1) {
@@ -136,7 +159,8 @@ backgroundPageConnection.onMessage.addListener(async (message) => {
         ...requests[index],
         status: message.data.status,
         duration: message.data.duration,
-        response: message.data.response
+        response: message.data.response,
+        pagePath: requests[index].pagePath  // Preserve the original path
       };
       requestDisplayUpdate();
     }
@@ -188,6 +212,7 @@ function updateDisplay() {
           const query = request.body?.query || request.query || '';
           const operationType = getOperationType(query);
           const operationName = getOperationName(query) || 'Anonymous Operation';
+          const route = request.pagePath || '/';
 
           return `
             <div class="request-card ${request.status}" 
@@ -199,6 +224,7 @@ function updateDisplay() {
                   <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
                   ${operationName}
                 </span>
+                <span class="route-info">${route}</span>
               </div>
             </div>
           `;
@@ -229,6 +255,7 @@ function updateDisplay() {
       const query = request.body?.query || request.query || '';
       const operationType = getOperationType(query);
       const operationName = getOperationName(query) || 'Anonymous Operation';
+      const route = request.pagePath || '/';
 
       return `
         <div class="request-card ${request.status}" 
@@ -240,6 +267,7 @@ function updateDisplay() {
               <span class="query-type-pill ${operationType.toLowerCase()}">${operationType}</span>
               ${operationName}
             </span>
+            <span class="route-info">${route}</span>
           </div>
         </div>
       `;
