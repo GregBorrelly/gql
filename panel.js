@@ -83,6 +83,43 @@ function setupEventListeners() {
     requests = [];
     await storage.clearHistory();
     requestDisplayUpdate();
+    
+    // Reset details panel to empty state
+    const detailsPanel = document.getElementById('details-panel');
+    detailsPanel.innerHTML = `
+      <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" style="width: 100px; height: 100px;">
+          <rect width="200" height="200" fill="#1A1A1A"/>
+          <g transform="translate(40, 40) scale(0.8)">
+            <path d="
+              M75 20 L125 45
+              M125 45 L125 95
+              M125 95 L75 120
+              M75 120 L25 95
+              M25 95 L25 45
+              M25 45 L75 20
+              M25 45 L125 95
+              M125 45 L25 95
+              M75 20 L75 120
+            " stroke="white" stroke-width="4" fill="none"/>
+            <circle cx="75" cy="20" r="10" fill="white"/>
+            <circle cx="125" cy="45" r="10" fill="white"/>
+            <circle cx="125" cy="95" r="10" fill="white"/>
+            <circle cx="75" cy="120" r="10" fill="white"/>
+            <circle cx="25" cy="95" r="10" fill="white"/>
+            <circle cx="25" cy="45" r="10" fill="white"/>
+            <circle cx="75" cy="70" r="12" fill="#FF69B4"/>
+          </g>
+          <g transform="translate(115, 115) rotate(-20)">
+            <circle cx="0" cy="0" r="35" fill="none" stroke="white" stroke-width="8"/>
+            <rect x="25" y="-4" width="45" height="8" fill="white" transform="rotate(45)" rx="4"/>
+            <circle cx="0" cy="0" r="28" fill="none" stroke="#FF69B4" stroke-width="2" stroke-dasharray="4,4"/>
+            <path d="M-20 -15 Q-10 -25 0 -20" stroke="white" stroke-width="3" fill="none"/>
+          </g>
+        </svg>
+        <p>Select a request to view details</p>
+      </div>
+    `;
   });
 }
 
