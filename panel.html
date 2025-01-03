@@ -1216,82 +1216,67 @@
     .header-content {
       flex: 1;
       margin: 0 24px;
+      display: flex;
+      justify-content: flex-end;
     }
 
     .filter-bar {
-      max-width: 600px;
-      margin: 0 auto;
       display: flex;
-      gap: 8px;
       align-items: center;
+      gap: 8px;
     }
 
     .search-wrapper {
       position: relative;
-      flex: 1;
       display: flex;
-      gap: 8px;
       align-items: center;
     }
 
-    .filter-type-select {
+    .search-input {
+      width: 300px;
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 6px 8px;
+      border-top-left-radius: 6px;
+      border-bottom-left-radius: 6px;
+      border-right: none;
+      padding: 8px 12px 8px 40px;
+      color: white;
+      font-size: 14px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 20px;
+      pointer-events: none;
+    }
+
+    .filter-type-select {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 6px;
+      padding: 9px 12px;
       color: white;
       font-size: 14px;
       cursor: pointer;
-      min-width: 140px;
+      width: 140px;
+      transition: background-color 0.2s;
     }
 
+    .filter-type-select:hover,
     .filter-type-select:focus {
+      background: rgba(255, 255, 255, 0.2);
       outline: none;
-      border-color: var(--primary);
     }
 
     .filter-type-select option {
       background: var(--bg-dark);
       color: white;
-    }
-
-    .search-input {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      padding: 8px 12px 8px 40px;
-      color: white;
-      font-size: 14px;
-      width: 100%;
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 150px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 20px;
-    }
-
-    .search-input:focus {
-      outline: none;
-      background: rgba(255, 255, 255, 0.15);
-      border-color: var(--primary);
-    }
-
-    .search-input::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    /* Dark mode overrides */
-    body.dark-mode .search-input {
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    body.dark-mode .search-input:focus {
-      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
     }
 
     /* Add these new styles for match indicators */
@@ -1361,44 +1346,6 @@
       border: 6px solid transparent;
       border-top-color: rgba(0, 0, 0, 0.9);
       margin-bottom: -4px;
-    }
-
-    .filter-type-select {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 6px 8px;
-      color: white;
-      font-size: 14px;
-      cursor: pointer;
-      z-index: 2;
-    }
-
-    .filter-type-select:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .filter-type-select option {
-      background: var(--bg-dark);
-      color: white;
-    }
-
-    /* Update search input to accommodate dropdown */
-    .search-input {
-      padding-right: 120px;
-    }
-
-    body.dark-mode .filter-type-select {
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    body.dark-mode .filter-type-select:focus {
-      background: rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
@@ -1471,12 +1418,12 @@
       <div class="header-content">
         <div class="filter-bar">
           <div class="search-wrapper">
+            <input type="text" id="global-filter" class="search-input" placeholder="Filter requests...">
             <i class="mdi mdi-magnify search-icon"></i>
             <select id="filter-type" class="filter-type-select">
               <option value="name">Query Name</option>
               <option value="response">Query Response</option>
             </select>
-            <input type="text" id="global-filter" class="search-input" placeholder="Filter requests...">
           </div>
         </div>
       </div>
