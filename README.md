@@ -1,4 +1,4 @@
-# GraphQL Network Inspector
+# GraphQL Request Inspector
 
 A Chrome DevTools extension for inspecting and analyzing GraphQL network requests in real-time.
 
@@ -23,6 +23,28 @@ A Chrome DevTools extension for inspecting and analyzing GraphQL network request
 - No data is collected or transmitted outside your browser
 - All data processing happens locally in your browser
 - Only requires minimal permissions necessary for functionality
+
+## Storage Implementation
+
+The extension uses several storage mechanisms to ensure performance while maintaining privacy:
+
+### Chrome Storage (Persistent)
+- Uses `chrome.storage.local` to store:
+  - User preferences (theme, starred groups)
+  - Request history (limited to 1000 items)
+- All data remains in your browser
+- Can be cleared via Chrome's clear browsing data options
+
+### In-Memory Storage (Temporary)
+- Implements LRU (Least Recently Used) cache for recent requests
+- Uses message queuing for performance optimization
+- Data is cleared when the browser is closed
+- No persistence beyond browser session
+
+### Data Limits
+- Request history: Maximum 1000 items
+- Message batching: 100ms delay for performance
+- Rate limiting: 50 requests per second per tab
 
 ## Permissions Explained
 

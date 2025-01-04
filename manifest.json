@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "GraphQL Network Inspector",
+  "name": "GraphQL Request Inspector",
   "version": "1.0.0",
   "description": "A developer tool for inspecting and analyzing GraphQL network requests in real-time. Monitor queries, mutations, and responses with syntax highlighting.",
   "author": "",

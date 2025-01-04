@@ -1,5 +1,3 @@
-console.log('[Background] Service worker started');
-
 // Efficient request store with LRU-like behavior
 class RequestStore {
   constructor(maxSize = 1000) {
@@ -61,7 +59,6 @@ const RateLimit = {
 
     // Check if under limit
     if (timestamps.length >= this.maxRequests) {
-      console.warn(`[Background] Rate limit exceeded for tab ${tabId}`);
       return false;
     }
 
@@ -114,12 +111,9 @@ function queueMessage(tabId, message) {
 
 chrome.runtime.onConnect.addListener(function (port) {
   if (port.name !== "devtools-page") return;
-
-  console.log('[Background] DevTools connected');
   
   port.onMessage.addListener(function (message) {
     if (message.type === 'init') {
-      console.log('[Background] Panel initialized for tab:', message.tabId);
       connections[message.tabId] = port;
       port.onDisconnect.addListener(function() {
         delete connections[message.tabId];
@@ -136,18 +130,10 @@ chrome.runtime.onMessage.addListener(function(message, sender) {
   
   // Check rate limit
   if (!RateLimit.checkLimit(tabId)) {
-    console.warn('[Background] Request dropped due to rate limiting');
     return true;
   }
 
   const requestId = Math.random().toString(36).substring(7);
-
-  console.log('[Background] Received response from content:', {
-    url: message.url,
-    status: message.status,
-    operationName: message.operationName,
-    bodyPreview: message.body ? JSON.stringify(message.body).slice(0, 100) : null
-  });
 
   const request = {
     id: requestId,

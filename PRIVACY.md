@@ -1,8 +1,8 @@
-# Privacy Policy for GraphQL Network Inspector
+# Privacy Policy for GraphQL Request Inspector
 
-## Data Collection and Usage
+## Overview
 
-The GraphQL Network Inspector extension does not collect, store, or transmit any personal data outside of your browser. Here's what you need to know:
+The GraphQL Request Inspector extension does not collect, store, or transmit any personal data outside of your browser. Here's what you need to know:
 
 ### What We Do Collect
 - GraphQL network requests made on pages you visit
@@ -15,7 +15,23 @@ The GraphQL Network Inspector extension does not collect, store, or transmit any
 - Preferences are saved locally to remember your settings
 - Request history is stored temporarily in your browser's local storage
 
-### Data Storage
+### Data Storage Implementation
+- Chrome Storage (Persistent)
+  - Uses Chrome's built-in storage API
+  - Stores user preferences and request history
+  - Limited to 1000 historical requests
+  - Can be cleared through Chrome's settings
+- In-Memory Storage (Temporary)
+  - Uses efficient LRU caching for recent requests
+  - Implements message batching for performance
+  - Cleared automatically when browser closes
+  - No persistence beyond browser session
+- Data Limits
+  - Maximum 1000 historical requests
+  - Message batching every 100ms
+  - Rate limiting: 50 requests per second per tab
+
+### Data Storage Location
 - All data is stored locally in your browser using Chrome's storage API
 - No data is sent to external servers
 - Data can be cleared by clearing your browser data or uninstalling the extension

@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     requests = [];
     requestDisplayUpdate();
   } catch (e) {
-    console.error('Initialization error:', e);
+    // Error handled silently
   }
 });
 
@@ -91,7 +91,6 @@ function setupEventListeners() {
     
     // Validate and sanitize input
     if (!InputValidation.validateSearchInput(rawInput)) {
-      console.warn('[Panel] Invalid search input detected');
       e.target.value = InputValidation.sanitizeInput(rawInput);
       return;
     }
@@ -384,7 +383,6 @@ function highlightMatch(text, filterValue) {
     const regex = new RegExp(`(${safeFilter})`, 'gi');
     return text.replace(regex, '<span class="highlight">$1</span>');
   } catch (e) {
-    console.error('[Panel] Regex error:', e);
     return text;
   }
 }
@@ -430,13 +428,11 @@ function setupEventHandlers(container) {
 
 function showDetails(request) {
   if (!request) {
-    console.log('[Panel] No request provided to showDetails');
     return;
   }
 
   const detailsPanel = document.getElementById('details-panel');
   const query = request.query || request.body?.query || '';
-  console.log('Query from request:', query);
   
   const operationType = getOperationType(query);
   const operationName = getOperationName(query) || 'Anonymous Operation';
@@ -446,12 +442,10 @@ function showDetails(request) {
   
   // Format and highlight the query
   const formattedQuery = formatGraphQLQuery(query);
-  console.log('Formatted query:', formattedQuery);
   
   const highlightedQuery = highlightGraphQLSyntax(
     operationType === 'nrql' ? formattedQuery : formattedQuery
   );
-  console.log('Highlighted query:', highlightedQuery);
 
   document.querySelectorAll('.request-card').forEach(card => {
     card.classList.remove('selected');
@@ -487,26 +481,14 @@ function showDetails(request) {
           </div>
           ${variables ? `
             <div class="variables-section">
-              <div class="variables-title">Variables</div>
-              <div class="query-section">
-                <button class="copy-btn" onclick="copyToClipboard(this, \`${JSON.stringify(variables, null, 2)}\`)">
-                  <i class="mdi mdi-content-copy"></i>
-                  <span>Copy</span>
-                </button>
-                <pre><code>${formatJSON(variables)}</code></pre>
-              </div>
+              <h3>Variables</h3>
+              <pre><code>${formatJSON(variables)}</code></pre>
             </div>
           ` : ''}
         </div>
         ${request.response ? `
           <div class="tab-panel" id="detail-response" style="display: none;">
-            <div class="query-section">
-              <button class="copy-btn" onclick="copyToClipboard(this, \`${JSON.stringify(request.response, null, 2)}\`)">
-                <i class="mdi mdi-content-copy"></i>
-                <span>Copy</span>
-              </button>
-              <pre><code id="response-content">${formattedResponse}</code></pre>
-            </div>
+            <pre><code>${formattedResponse}</code></pre>
           </div>
         ` : ''}
       </div>
@@ -514,21 +496,7 @@ function showDetails(request) {
   `;
 
   setupTabHandlers(detailsPanel);
-
-  // If there are matches and we're using a global filter, switch to response tab and scroll to first match
-  if (matchLocations.length > 0 && globalFilter) {
-    const responseTab = detailsPanel.querySelector('[data-tab="response"]');
-    if (responseTab) {
-      responseTab.click();
-      setTimeout(() => {
-        const firstMatch = document.querySelector('.highlight');
-        if (firstMatch) {
-          firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          firstMatch.classList.add('current-highlight');
-        }
-      }, 100);
-    }
-  }
+  setupJsonToggles(detailsPanel);
 }
 
 function setupTabHandlers(container) {
@@ -577,8 +545,6 @@ function getStatusBadge(status) {
 
 function formatGraphQLQuery(query) {
   try {
-    console.log('Original query:', query);
-
     // Check if it's a NRQL query
     if (query.includes('nrql:"SELECT')) {
       const nrqlPart = query.match(/nrql:"(.*?)"/s)?.[1];
@@ -618,9 +584,7 @@ function formatGraphQLQuery(query) {
       .replace(/:\s*\[/g, ': [')
       // Add space after commas
       .replace(/,(?!\s)/g, ', ');
-
-    console.log('After first pass:', formatted);
-
+    
     // Second pass: handle nested structure
     let result = '';
     let depth = 0;
@@ -684,11 +648,9 @@ function formatGraphQLQuery(query) {
       .replace(/\s+\)/g, ')')  // Clean up spaces before closing parenthesis
       .trim();
 
-    console.log('Final formatted result:', result);
     return result;
 
   } catch (e) {
-    console.error('Error formatting query:', e);
     return query;
   }
 }

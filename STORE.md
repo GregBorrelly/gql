@@ -4,7 +4,7 @@
 Monitor and debug GraphQL network requests in real-time. Inspect queries, mutations, and responses with syntax highlighting.
 
 ## Detailed Description
-GraphQL Network Inspector is a powerful developer tool that helps you monitor and debug GraphQL network requests directly in Chrome DevTools. Perfect for developers working with GraphQL APIs.
+GraphQL Request Inspector is a powerful developer tool that helps you monitor and debug GraphQL network requests directly in Chrome DevTools. Perfect for developers working with GraphQL APIs.
 
 Key Features:
 • Real-time monitoring of GraphQL queries and mutations
@@ -14,6 +14,13 @@ Key Features:
 • Dark mode interface
 • Zero configuration required
 • Completely private - all processing happens in your browser
+
+Storage & Privacy:
+• Uses Chrome's local storage for preferences and history
+• Implements efficient in-memory caching
+• Limited to 1000 historical requests
+• Automatic cleanup of old data
+
 
 How to Use:
 1. Install the extension
