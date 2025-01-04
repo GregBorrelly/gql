@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <meta http-equiv="X-Frame-Options" content="DENY">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data:">
   <title>GraphQL Network Inspector</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
@@ -1429,10 +1429,10 @@
       </div>
       <div class="toolbar">
         <button class="toolbar-btn" id="group-toggle-btn" title="Toggle smart grouping">
-          <i class="mdi mdi-group"></i>
+          <i class="mdi mdi-view-grid"></i>
         </button>
         <button class="toolbar-btn" id="clear-btn" title="Clear all requests">
-          <i class="mdi mdi-delete"></i>
+          <i class="mdi mdi-trash-can-outline"></i>
         </button>
       </div>
     </header>
