@@ -1,0 +1,24 @@
+This application uses third-party software and resources that may be distributed under licenses different from the GraphQL Request Inspector license (MIT License).
+
+1. Google Fonts
+   - Inter Font
+   - JetBrains Mono Font
+   License: SIL Open Font License, Version 1.1
+   Source: https://fonts.google.com/
+
+2. Material Design Icons
+   License: Apache License 2.0
+   Source: https://materialdesignicons.com/
+   Copyright: Google and other contributors
+
+3. Prettier
+   License: MIT License
+   Source: https://prettier.io/
+   Copyright: James Long and contributors
+
+The text of these licenses is available at:
+- SIL Open Font License: https://scripts.sil.org/OFL
+- Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0
+- MIT License: https://opensource.org/licenses/MIT
+
+All other code and content © 2025 GraphQL Request Inspector under MIT License. 
